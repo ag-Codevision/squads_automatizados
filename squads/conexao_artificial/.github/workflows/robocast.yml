@@ -1,0 +1,52 @@
+name: OpenSquad Robocast 🤖
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+# Dá permissão para o robô fazer push (salvar os áudios gerados) de volta no repositório
+permissions:
+  contents: write
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código do Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar identidade do Robô no Git
+        run: |
+          git config --global user.name "OpenSquad Cloud Bot"
+          git config --global user.email "bot@opensquad.com"
+
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar FFmpeg (para Edição de Vídeo)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Instalar Pacotes Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests supabase elevenlabs python-dotenv google-auth-oauthlib google-api-python-client
+
+      - name: Acordar Orquestrador 🧠
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          OMNI_URL: ${{ secrets.OMNI_URL }}
+          OMNI_API_KEY: ${{ secrets.OMNI_API_KEY }}
+          OMNI_MODEL: ${{ secrets.OMNI_MODEL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python scripts/orquestrador.py

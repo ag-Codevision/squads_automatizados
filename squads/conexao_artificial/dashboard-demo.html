@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>OpenSquad Dashboard</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #050505;
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text-main: #FFFFFF;
+      --text-muted: #888888;
+      --accent: #5E6AD2;
+      --accent-glow: rgba(94, 106, 210, 0.4);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, sans-serif;
+    }
+
+    /* Scrollbar Personalizada */
+    ::-webkit-scrollbar {
+      width: 12px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-color); 
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15); 
+      border-radius: 10px;
+      border: 3px solid var(--bg-color);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3); 
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(94, 106, 210, 0.15), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(138, 43, 226, 0.1), transparent 25%);
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .dashboard-container {
+      width: 100%;
+      max-width: 1000px;
+      padding: 40px;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 32px;
+      animation: fadeIn 1s ease-out;
+    }
+
+    .glass-panel {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 32px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .logo-area {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .logo-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #5E6AD2, #8A2BE2);
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .squad-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .squad-header {
+      color: var(--text-main);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .squad-header:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    .squad-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    }
+    .squad-icon.conexao {
+      background: linear-gradient(135deg, #5E6AD2, #8A2BE2);
+      box-shadow: 0 0 10px rgba(94, 106, 210, 0.4);
+    }
+    .sub-menu {
+      display: flex;
+      flex-direction: column;
+      margin-left: 20px;
+      border-left: 1px solid var(--glass-border);
+      padding-left: 8px;
+      gap: 2px;
+      margin-top: 4px;
+    }
+
+    .nav-item {
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-item.active {
+      color: var(--text-main);
+      background: rgba(255,255,255,0.05);
+    }
+    .nav-item:hover:not(.active) {
+      color: #ccc;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+    }
+    
+    input {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--glass-border);
+      color: white;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Custom Select Styles */
+    .custom-select-container {
+      position: relative;
+      user-select: none;
+    }
+    .custom-select-trigger {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--glass-border);
+      color: white;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .custom-select-trigger:focus, .custom-select-container.open .custom-select-trigger {
+      border-color: var(--accent);
+    }
+    .custom-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 8px;
+      background: rgba(20, 20, 20, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      overflow: hidden;
+      z-index: 100;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      animation: fadeIn 0.2s ease-out;
+    }
+    .custom-option {
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .custom-option:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--accent);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #5E6AD2, #4752C4);
+      color: white;
+      border: none;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 8px 24px var(--accent-glow);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px var(--accent-glow);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .queue-list {
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .queue-item {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--glass-border);
+      padding: 16px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+    }
+    .queue-item:hover {
+      background: rgba(255,255,255,0.04);
+    }
+    .queue-item-title {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .queue-item-time {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .status-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 100px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-pending { background: rgba(255, 171, 0, 0.1); color: #FFAB00; }
+    .status-processing { background: rgba(94, 106, 210, 0.1); color: #5E6AD2; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const CustomSelect = ({ options, value, onChange }) => {
+      const [isOpen, setIsOpen] = useState(false);
+      return (
+        <div className={`custom-select-container ${isOpen ? 'open' : ''}`} onBlur={() => setIsOpen(false)} tabIndex="0">
+          <div className="custom-select-trigger" onClick={() => setIsOpen(!isOpen)}>
+            {value}
+            <span style={{ fontSize: '10px', opacity: 0.5 }}>▼</span>
+          </div>
+          {isOpen && (
+            <div className="custom-select-dropdown">
+              {options.map(opt => (
+                <div key={opt} className="custom-option" onMouseDown={(e) => { e.preventDefault(); onChange(opt); setIsOpen(false); }}>
+                  {opt}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    function Dashboard() {
+      const [episodes, setEpisodes] = useState([
+        { id: 1, title: 'Energia Infinita: O Sol Engarrafado', time: 'Processando agora...', status: 'processing' },
+        { id: 2, title: 'Automação Podcast Ep 02', time: 'Agendado para 15:00', status: 'pending' },
+        { id: 3, title: 'Automação Podcast Ep 03', time: 'Agendado para 21:00', status: 'pending' }
+      ]);
+      const [isSubmitting, setIsSubmitting] = useState(false);
+      
+      const freqOptions = ['Agora mesmo (Imediato)', 'A cada 6 horas', 'Diariamente às 08:00', 'Seg, Qua, Sex às 15:00'];
+      const [freq, setFreq] = useState(freqOptions[0]);
+      
+      const qtyOptions = ['1 Episódio', '5 Episódios', '10 Episódios', 'Infinito (Piloto Automático)'];
+      const [qty, setQty] = useState(qtyOptions[0]);
+
+      const handleSchedule = () => {
+        setIsSubmitting(true);
+        setTimeout(() => {
+          setEpisodes(prev => [...prev, { id: Date.now(), title: 'Novo Episódio na Fila', time: 'Na Fila', status: 'pending' }]);
+          setIsSubmitting(false);
+        }, 800);
+      };
+
+      return (
+        <div className="dashboard-container">
+          <div className="sidebar glass-panel">
+            <div className="logo-area">
+              <div className="logo-icon" style={{background: 'white', boxShadow: '0 0 15px rgba(255,255,255,0.2)'}}></div>
+              OpenSquad
+            </div>
+            
+            <div className="squad-group">
+              <div className="squad-header">
+                <div className="squad-icon conexao"></div>
+                Conexão Artificial
+              </div>
+              <div className="sub-menu">
+                <div className="nav-item active">Painel de Agendamento</div>
+                <div className="nav-item">Configurar Vozes</div>
+                <div className="nav-item">Chaves de API</div>
+                <div className="nav-item">Conexões (Spotify/YT)</div>
+                <div className="nav-item">Logs do Robô</div>
+              </div>
+            </div>
+
+            <div className="squad-group" style={{ opacity: 0.5 }}>
+              <div className="squad-header">
+                <div className="squad-icon" style={{background: '#333'}}></div>
+                + Novo Squad
+              </div>
+            </div>
+          </div>
+          
+          <div className="main-content glass-panel">
+            <h1>Agendar Episódio</h1>
+            <div className="subtitle">Configure a esteira de produção para o Conexão Artificial.</div>
+            
+            <div className="form-group">
+              <label>Pauta do Episódio (Opcional)</label>
+              <input type="text" placeholder="Ex: Robôs que sentem dor física..." />
+            </div>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+              <div className="form-group">
+                <label>Frequência</label>
+                <CustomSelect options={freqOptions} value={freq} onChange={setFreq} />
+              </div>
+              <div className="form-group">
+                <label>Quantidade</label>
+                <CustomSelect options={qtyOptions} value={qty} onChange={setQty} />
+              </div>
+            </div>
+
+            <button className="btn-primary" onClick={handleSchedule} disabled={isSubmitting}>
+              {isSubmitting ? 'Enviando para a Fila...' : '✨ Agendar Produção'}
+            </button>
+
+            <div className="queue-list">
+              <label>Fila de Produção Atual</label>
+              {episodes.map(ep => (
+                <div key={ep.id} className="queue-item">
+                  <div>
+                    <div className="queue-item-title">{ep.title}</div>
+                    <div className="queue-item-time">{ep.time}</div>
+                  </div>
+                  <div className={`status-badge status-${ep.status}`}>
+                    {ep.status === 'pending' ? 'AGENDADO' : 'RENDERIZANDO'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<Dashboard />);
+  </script>
+</body>
+</html>

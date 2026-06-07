@@ -1,0 +1,43 @@
+name: Conexão Artificial Podcast Squad
+description: Pipeline automatizado para criar o podcast de tecnologia diário.
+
+pipeline:
+  - step: 0
+    agent_id: 6
+    role: Agendador e Orquestrador
+    task: Pergunte ao usuário via menu interativo (múltipla escolha) quantos episódios ele deseja criar e qual o cronograma de postagem. Use o sistema de cron/schedule para orquestrar os disparos automáticos nos horários escolhidos.
+  - step: 1
+    agent_id: 1
+    task: Busque 3 notícias importantes e recentes sobre IA e tecnologia e crie o arquivo noticias_do_dia.md na pasta output.
+
+  - step: 2
+    agent_id: 2
+    task: Leia a pesquisa em noticias_do_dia.md e crie um roteiro salvando em roteiro_episodio.txt na pasta output. Você DEVE ler e seguir rigorosamente todas as regras e a persona definidas no arquivo _memory/prompt_redator.md.
+
+  - step: 3
+    agent_id: 3
+    task: Execute o script python gerar_audio.py para transformar o roteiro_episodio.txt em podcast_audio.mp3 na pasta output.
+
+  - step: 4
+    agent_id: 4
+    task: Execute o script python gerar_video.py usando o podcast_audio.mp3 e o vídeo template para gerar podcast_final.mp4.
+
+  - step: 5
+    agent_id: 5
+    task: Gere o youtube_metadata.txt com título sugerido, descrição e tags baseados no roteiro. Avise o usuário que tudo está pronto!
+
+  - step: 6
+    agent_id: 5
+    task: Execute exatamente o comando "py -3.12 f:\openSquad\squads\conexao_artificial\scripts\upload_youtube.py" para subir o vídeo gerado para o canal do YouTube.
+
+  - step: 7
+    agent_id: 5
+    task: Execute o script python organizar_episodio.py na pasta scripts para agrupar e arquivar todos os arquivos em uma subpasta dentro de output/episodios.
+
+  - step: 8
+    agent_id: 5
+    task: Execute o script python gerar_rss_spotify.py na pasta scripts para atualizar o arquivo rss.xml com os novos episódios para o Spotify.
+
+  - step: 9
+    agent_id: 5
+    task: Execute o script python upload_github.py na pasta scripts para subir a pasta de episódios para a internet, atualizando o servidor do Spotify.

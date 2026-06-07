@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  dashboard:
+    build:
+      context: ./opensquad-dashboard
+      args:
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    image: opensquad-dashboard:latest
+    container_name: opensquad-dashboard
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - GITHUB_PAT=${GITHUB_PAT}
+      - POLLINATIONS_API_KEY=${POLLINATIONS_API_KEY}
+    env_file:
+      - ./opensquad-dashboard/.env.local
+
+  cron-runner:
+    build:
+      context: ./squads/conexao_artificial
+    image: conexao-artificial-squad:latest
+    container_name: conexao-artificial-squad
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - POLLINATIONS_API_KEY=${POLLINATIONS_API_KEY}
+      - OMNI_URL=${OMNI_URL}
+      - OMNI_API_KEY=${OMNI_API_KEY}
+      - OMNI_MODEL=${OMNI_MODEL}
+      - VOICE_TON=${VOICE_TON}
+      - VOICE_BIA=${VOICE_BIA}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    env_file:
+      - ./squads/conexao_artificial/.env
+    # Impede que o container do cron seja iniciado por padrão com o docker compose up
+    profiles:
+      - donotstart

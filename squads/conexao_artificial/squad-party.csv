@@ -1,0 +1,6 @@
+id,agent_file,name,role
+1,pesquisador_conexao.agent.md,Searcher,Pesquisador de Tendências
+2,redator_conexao.agent.md,Writer,Redator Chefe
+3,produtor_audio_conexao.agent.md,AudioEng,Produtor de Áudio
+4,editor_video_conexao.agent.md,VideoEd,Editor de Vídeo
+5,publicador_conexao.agent.md,Publisher,Publicador

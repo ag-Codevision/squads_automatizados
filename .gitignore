@@ -1,0 +1,12 @@
+node_modules/
+.next/
+*.env
+*.env.local
+scratch/
+*.wav
+*.mp3
+*.mp4
+squads/conexao_artificial/output/
+squads/conexao_artificial/assets/youtube fundo template.mp4
+squads/conexao_artificial/assets/Trilha sonora oficial.m4a
+squads/conexao_artificial/scripts/__pycache__/

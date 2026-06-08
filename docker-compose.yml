@@ -25,6 +25,8 @@ services:
       context: ./squads/conexao_artificial
     image: conexao-artificial-squad:latest
     container_name: conexao-artificial-squad
+    volumes:
+      - ./squads/conexao_artificial:/app
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}

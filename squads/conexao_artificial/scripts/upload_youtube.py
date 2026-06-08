@@ -19,35 +19,60 @@ VIDEO_FILE = os.path.join(OUTPUT_DIR, "podcast_final.mp4")
 METADATA_FILE = os.path.join(OUTPUT_DIR, "youtube_metadata.txt")
 
 def get_authenticated_service():
-    if not os.path.exists(CLIENT_SECRET_FILE):
-        print(f"[AVISO] O arquivo {CLIENT_SECRET_FILE} não foi encontrado. Pulando upload para o YouTube.")
-        return None
+    is_github = os.environ.get("GITHUB_ACTIONS") == "true"
+    is_vps = os.path.exists("/root/squads_automatizados") or os.environ.get("PRODUCTION") == "true" or os.environ.get("IS_VPS") == "true"
 
-    # Se estiver rodando no GitHub Actions e o token.json não estiver presente,
-    # pulamos o upload para evitar travar o console headless.
-    if os.environ.get("GITHUB_ACTIONS") == "true" and not os.path.exists(TOKEN_FILE):
-        print("[AVISO] Ambiente headless GitHub Actions sem token.json. Pulando upload do YouTube para evitar travamentos.")
-        return None
+    if not os.path.exists(CLIENT_SECRET_FILE):
+        msg = f"[ERRO] O arquivo {CLIENT_SECRET_FILE} não foi encontrado."
+        if is_github:
+            print(f"{msg} Pulando upload no GitHub Actions.")
+            return None
+        else:
+            print(msg)
+            sys.exit(1)
 
     creds = None
     if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-    
+        try:
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        except Exception as e_load:
+            print(f"[AVISO] Falha ao carregar {TOKEN_FILE}: {e_load}")
+
+    # Se credenciais forem nulas ou inválidas, tentamos renovar
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
+                print("Tentando renovar token do YouTube expirado...")
                 creds.refresh(Request())
+                with open(TOKEN_FILE, "w") as token:
+                    token.write(creds.to_json())
+                print("[OK] Token renovado com sucesso.")
             except Exception as ref_err:
-                print(f"[AVISO] Falha ao renovar credenciais do YouTube: {ref_err}. Pulando upload.")
-                return None
+                print(f"[AVISO] Falha ao renovar credenciais do YouTube: {ref_err}")
+                creds = None
         else:
-            if os.environ.get("GITHUB_ACTIONS") == "true":
-                print("[AVISO] Autenticação do YouTube requer login interativo. Pulando na nuvem.")
-                return None
-            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open(TOKEN_FILE, "w") as token:
-            token.write(creds.to_json())
+            creds = None
+
+    # Se mesmo após a tentativa de renovação continuarmos sem credenciais válidas:
+    if not creds or not creds.valid:
+        if is_github:
+            print("[AVISO] Autenticação do YouTube requer login interativo. Pulando no GitHub Actions.")
+            return None
+        elif is_vps:
+            print("[ERRO] O token.json é inválido ou não foi encontrado e estamos rodando na VPS (Headless).")
+            print("Por favor, execute o script localmente no seu computador para gerar o token.json e envie-o para a VPS.")
+            sys.exit(1)
+        else:
+            print("[INFO] Iniciando fluxo de autenticação interativa no navegador local para obter credenciais do YouTube...")
+            try:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)
+                with open(TOKEN_FILE, "w") as token:
+                    token.write(creds.to_json())
+                print(f"[OK] Novo token.json gerado com sucesso e salvo em {TOKEN_FILE}!")
+            except Exception as auth_err:
+                print(f"[ERRO] Falha na autenticação interativa local: {auth_err}")
+                sys.exit(1)
 
     return build("youtube", "v3", credentials=creds)
 

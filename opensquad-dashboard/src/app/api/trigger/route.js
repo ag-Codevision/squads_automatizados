@@ -11,7 +11,7 @@ export async function POST() {
   }
 
   // URL da API do GitHub para disparo de workflow
-  const url = 'https://api.github.com/repos/ag-Codevision/conexao-artificial-cloud/actions/workflows/robocast.yml/dispatches';
+  const url = 'https://api.github.com/repos/ag-Codevision/squads_automatizados/actions/workflows/robocast.yml/dispatches';
 
   try {
     const res = await fetch(url, {

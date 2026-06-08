@@ -19,7 +19,7 @@ jobs:
           port: 22
           script: |
             # Caminho onde o projeto está clonado na VPS
-            cd /root/opensquad
+            cd /root/squads_automatizados
             
             # Puxa a versão mais recente do GitHub
             git pull origin main

@@ -23,7 +23,8 @@ import {
   ChevronRight,
   X,
   FileText,
-  Edit3
+  Edit3,
+  ChevronDown
 } from 'lucide-react';
 
 const CustomSelect = ({ options, value, onChange }) => {
@@ -192,6 +193,9 @@ export default function Dashboard() {
   const [editTopic, setEditTopic] = useState('');
   const [editScheduleTime, setEditScheduleTime] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+
+  // Estado para colapsar/expandir submenus da sidebar
+  const [conexaoExpanded, setConexaoExpanded] = useState(true);
   
   const [settings, setSettings] = useState({
     omni_model: 'g',
@@ -642,11 +646,35 @@ export default function Dashboard() {
         </div>
         
         <div className="squad-group">
-          <div className="squad-header">
-            <div className="squad-icon conexao"></div>
-            Conexão Artificial
+          <div className="squad-header" onClick={() => setConexaoExpanded(!conexaoExpanded)}>
+            <img 
+              src="/conexao-artificial-icon.png" 
+              alt="Conexão Artificial" 
+              className="squad-icon conexao" 
+              style={{ objectFit: 'cover' }}
+            />
+            <span style={{ flex: 1 }}>Conexão Artificial</span>
+            <ChevronDown 
+              size={14} 
+              style={{ 
+                transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 
+                transform: conexaoExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                opacity: 0.5,
+                flexShrink: 0
+              }} 
+            />
           </div>
-          <div className="sub-menu">
+          <div 
+            className="sub-menu" 
+            style={{ 
+              maxHeight: conexaoExpanded ? '500px' : '0px',
+              overflow: 'hidden',
+              opacity: conexaoExpanded ? 1 : 0,
+              transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+              marginTop: conexaoExpanded ? '4px' : '0px',
+              paddingLeft: conexaoExpanded ? '8px' : '8px'
+            }}
+          >
             <div 
               className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
               onClick={() => setActiveTab('dashboard')}

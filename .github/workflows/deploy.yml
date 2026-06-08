@@ -1,0 +1,32 @@
+name: Deploy na VPS Hostinger 🚀
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Executar comandos na VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            # Caminho onde o projeto está clonado na VPS
+            cd /root/opensquad
+            
+            # Puxa a versão mais recente do GitHub
+            git pull origin main
+            
+            # Reconstrói e reinicia o serviço do dashboard
+            docker compose build dashboard
+            docker compose up -d dashboard
+            
+            # Reconstrói a imagem do cron-runner para as próximas execuções do cron
+            docker compose build cron-runner

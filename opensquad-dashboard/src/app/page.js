@@ -208,10 +208,12 @@ export default function Dashboard() {
   // Mapeamentos de chaves/labels do OmniRoute
   const modelLabels = {
     'g': 'Omniroute Combo g',
+    'nvidia': 'Combo Nvidia',
     'pollinations': 'Pollinations',
   };
   const modelKeys = {
     'Omniroute Combo g': 'g',
+    'Combo Nvidia': 'nvidia',
     'Pollinations': 'pollinations',
   };
 

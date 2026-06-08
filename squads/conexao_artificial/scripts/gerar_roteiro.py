@@ -62,13 +62,35 @@ def gerar_texto_ia(prompt, system_instruction=None):
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.7
+            "temperature": 0.7,
+            "stream": True
         }
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            response = requests.post(url, headers=headers, json=payload, stream=True, timeout=45)
             response.raise_for_status()
-            data = response.json()
-            return data['choices'][0]['message']['content']
+            
+            import json
+            full_content = []
+            for line in response.iter_lines():
+                if line:
+                    line_str = line.decode('utf-8', errors='ignore')
+                    if line_str.startswith("data: "):
+                        data_content = line_str[6:].strip()
+                        if data_content == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data_content)
+                            delta = chunk['choices'][0]['delta']
+                            if 'content' in delta:
+                                full_content.append(delta['content'])
+                        except:
+                            pass
+            
+            texto_completo = "".join(full_content)
+            if texto_completo:
+                return texto_completo
+            else:
+                raise Exception("Resposta de stream vazia")
         except Exception as e:
             print(f"[ERRO] Erro ao conectar na IA OmniRoute ({model_name}): {e}")
 

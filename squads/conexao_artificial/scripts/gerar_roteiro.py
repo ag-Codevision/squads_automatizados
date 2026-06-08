@@ -66,7 +66,7 @@ def gerar_texto_ia(prompt, system_instruction=None):
             "stream": True
         }
         try:
-            response = requests.post(url, headers=headers, json=payload, stream=True, timeout=45)
+            response = requests.post(url, headers=headers, json=payload, stream=True, timeout=120)
             response.raise_for_status()
             
             import json

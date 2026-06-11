@@ -176,6 +176,12 @@ const calculateScheduleTimes = (freq, numEpisodes) => {
 };
 
 export default function Dashboard() {
+  const [selectedSquad, setSelectedSquad] = useState('conexao_artificial');
+  const [expandedSquads, setExpandedSquads] = useState({
+    conexao_artificial: true,
+    'youtube-black-screen': false
+  });
+
   const [episodes, setEpisodes] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [topic, setTopic] = useState('');
@@ -193,9 +199,6 @@ export default function Dashboard() {
   const [editTopic, setEditTopic] = useState('');
   const [editScheduleTime, setEditScheduleTime] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-
-  // Estado para colapsar/expandir submenus da sidebar
-  const [conexaoExpanded, setConexaoExpanded] = useState(true);
   
   const [settings, setSettings] = useState({
     omni_model: 'g',
@@ -276,15 +279,15 @@ export default function Dashboard() {
 
   // Carregar episódios e configurações do Supabase
   useEffect(() => {
-    fetchEpisodes();
-    fetchSettings();
+    fetchEpisodes(selectedSquad);
+    fetchSettings(selectedSquad);
     setCurrentDate(new Date());
     
     // Atualização em tempo real (Realtime subscriptions) para episódios
     const channel = supabase
       .channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'episodes_queue' }, payload => {
-        fetchEpisodes();
+        fetchEpisodes(selectedSquad);
       })
       .subscribe();
 
@@ -292,7 +295,7 @@ export default function Dashboard() {
     const settingsChannel = supabase
       .channel('settings-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'squad_settings' }, payload => {
-        if (payload.new) {
+        if (payload.new && payload.new.squad === selectedSquad) {
           setSettings(payload.new);
         }
       })
@@ -302,7 +305,7 @@ export default function Dashboard() {
       supabase.removeChannel(channel);
       supabase.removeChannel(settingsChannel);
     };
-  }, []);
+  }, [selectedSquad]);
 
   // Recalcular episódios do dia selecionado em tempo real se a lista de episódios mudar
   useEffect(() => {
@@ -344,10 +347,11 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [episodes]);
 
-  const fetchEpisodes = async () => {
+  const fetchEpisodes = async (squadCode) => {
     const { data, error } = await supabase
       .from('episodes_queue')
       .select('*')
+      .eq('squad', squadCode)
       .order('created_at', { ascending: false });
       
     if (!error && data) {
@@ -355,12 +359,13 @@ export default function Dashboard() {
     }
   };
 
-  const fetchSettings = async () => {
+  const fetchSettings = async (squadCode) => {
     setIsLoadingSettings(true);
     try {
       const { data, error } = await supabase
         .from('squad_settings')
         .select('*')
+        .eq('squad', squadCode)
         .limit(1);
         
       if (!error && data && data.length > 0) {
@@ -434,11 +439,12 @@ export default function Dashboard() {
       const scheduledDates = calculateScheduleTimes(finalFreq, numEpisodes);
       for (let i = 0; i < numEpisodes; i++) {
         inserts.push({
-          topic: topic || 'Aleatório (Notícias do dia)',
+          topic: topic || (selectedSquad === 'conexao_artificial' ? 'Aleatório (Notícias do dia)' : 'Som de Chuva para Relaxar'),
           status: 'pending',
           voice_ton: settings.voice_ton || 'google/gemini-3.1-flash-tts',
           voice_bia: settings.voice_bia || 'google/gemini-3.1-flash-tts',
-          schedule_time: scheduledDates[i].toISOString()
+          schedule_time: scheduledDates[i].toISOString(),
+          squad: selectedSquad
         });
       }
       
@@ -647,20 +653,27 @@ export default function Dashboard() {
           OpenSquad
         </div>
         
+        {/* Squad 1: Conexão Artificial */}
         <div className="squad-group">
-          <div className="squad-header" onClick={() => setConexaoExpanded(!conexaoExpanded)}>
+          <div 
+            className="squad-header" 
+            onClick={() => {
+              setSelectedSquad('conexao_artificial');
+              setExpandedSquads({ conexao_artificial: !expandedSquads.conexao_artificial, 'youtube-black-screen': false });
+            }}
+          >
             <img 
               src="/conexao-artificial-icon.png" 
               alt="Conexão Artificial" 
               className="squad-icon conexao" 
               style={{ objectFit: 'cover' }}
             />
-            <span style={{ flex: 1 }}>Conexão Artificial</span>
+            <span style={{ flex: 1, fontWeight: selectedSquad === 'conexao_artificial' ? 'bold' : 'normal' }}>Conexão Artificial</span>
             <ChevronDown 
               size={14} 
               style={{ 
                 transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 
-                transform: conexaoExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                transform: expandedSquads.conexao_artificial ? 'rotate(0deg)' : 'rotate(-90deg)',
                 opacity: 0.5,
                 flexShrink: 0
               }} 
@@ -669,52 +682,123 @@ export default function Dashboard() {
           <div 
             className="sub-menu" 
             style={{ 
-              maxHeight: conexaoExpanded ? '500px' : '0px',
+              maxHeight: expandedSquads.conexao_artificial ? '500px' : '0px',
               overflow: 'hidden',
-              opacity: conexaoExpanded ? 1 : 0,
+              opacity: expandedSquads.conexao_artificial ? 1 : 0,
               transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
-              marginTop: conexaoExpanded ? '4px' : '0px',
-              paddingLeft: conexaoExpanded ? '8px' : '8px'
+              marginTop: expandedSquads.conexao_artificial ? '4px' : '0px',
+              paddingLeft: '8px'
             }}
           >
             <div 
-              className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
+              className={`nav-item ${selectedSquad === 'conexao_artificial' && activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('conexao_artificial'); setActiveTab('dashboard'); }}
             >
               <BarChart2 size={16} /> Visão Geral
             </div>
             <div 
-              className={`nav-item ${activeTab === 'agendamento' ? 'active' : ''}`}
-              onClick={() => setActiveTab('agendamento')}
+              className={`nav-item ${selectedSquad === 'conexao_artificial' && activeTab === 'agendamento' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('conexao_artificial'); setActiveTab('agendamento'); }}
             >
               <PlusCircle size={16} /> Agendar Episódio
             </div>
             <div 
-              className={`nav-item ${activeTab === 'crons' ? 'active' : ''}`}
-              onClick={() => setActiveTab('crons')}
+              className={`nav-item ${selectedSquad === 'conexao_artificial' && activeTab === 'crons' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('conexao_artificial'); setActiveTab('crons'); }}
             >
               <Clock size={16} /> Gerenciar Crons
             </div>
             <div 
-              className={`nav-item ${activeTab === 'calendario' ? 'active' : ''}`}
-              onClick={() => setActiveTab('calendario')}
+              className={`nav-item ${selectedSquad === 'conexao_artificial' && activeTab === 'calendario' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('conexao_artificial'); setActiveTab('calendario'); }}
             >
               <CalendarDays size={16} /> Calendário
             </div>
             <div 
-              className={`nav-item ${activeTab === 'historico' ? 'active' : ''}`}
-              onClick={() => setActiveTab('historico')}
+              className={`nav-item ${selectedSquad === 'conexao_artificial' && activeTab === 'historico' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('conexao_artificial'); setActiveTab('historico'); }}
             >
               <History size={16} /> Histórico
             </div>
             <div 
-              className={`nav-item ${activeTab === 'configuracoes' ? 'active' : ''}`}
-              onClick={() => setActiveTab('configuracoes')}
+              className={`nav-item ${selectedSquad === 'conexao_artificial' && activeTab === 'configuracoes' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('conexao_artificial'); setActiveTab('configuracoes'); }}
             >
               <Settings size={16} /> Configurações
             </div>
             <div className="nav-item" style={{ opacity: 0.25, cursor: 'not-allowed' }}>Chaves de API</div>
             <div className="nav-item" style={{ opacity: 0.25, cursor: 'not-allowed' }}>Conexões (Spotify/YT)</div>
+          </div>
+        </div>
+
+        {/* Squad 2: YouTube Black Screen */}
+        <div className="squad-group">
+          <div 
+            className="squad-header" 
+            onClick={() => {
+              setSelectedSquad('youtube-black-screen');
+              setExpandedSquads({ conexao_artificial: false, 'youtube-black-screen': !expandedSquads['youtube-black-screen'] });
+            }}
+          >
+            <span className="squad-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '14px' }}>💤</span>
+            <span style={{ flex: 1, fontWeight: selectedSquad === 'youtube-black-screen' ? 'bold' : 'normal' }}>YouTube Black Screen</span>
+            <ChevronDown 
+              size={14} 
+              style={{ 
+                transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 
+                transform: expandedSquads['youtube-black-screen'] ? 'rotate(0deg)' : 'rotate(-90deg)',
+                opacity: 0.5,
+                flexShrink: 0
+              }} 
+            />
+          </div>
+          <div 
+            className="sub-menu" 
+            style={{ 
+              maxHeight: expandedSquads['youtube-black-screen'] ? '500px' : '0px',
+              overflow: 'hidden',
+              opacity: expandedSquads['youtube-black-screen'] ? 1 : 0,
+              transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+              marginTop: expandedSquads['youtube-black-screen'] ? '4px' : '0px',
+              paddingLeft: '8px'
+            }}
+          >
+            <div 
+              className={`nav-item ${selectedSquad === 'youtube-black-screen' && activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('youtube-black-screen'); setActiveTab('dashboard'); }}
+            >
+              <BarChart2 size={16} /> Visão Geral
+            </div>
+            <div 
+              className={`nav-item ${selectedSquad === 'youtube-black-screen' && activeTab === 'agendamento' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('youtube-black-screen'); setActiveTab('agendamento'); }}
+            >
+              <PlusCircle size={16} /> Agendar Vídeo
+            </div>
+            <div 
+              className={`nav-item ${selectedSquad === 'youtube-black-screen' && activeTab === 'crons' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('youtube-black-screen'); setActiveTab('crons'); }}
+            >
+              <Clock size={16} /> Gerenciar Crons
+            </div>
+            <div 
+              className={`nav-item ${selectedSquad === 'youtube-black-screen' && activeTab === 'calendario' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('youtube-black-screen'); setActiveTab('calendario'); }}
+            >
+              <CalendarDays size={16} /> Calendário
+            </div>
+            <div 
+              className={`nav-item ${selectedSquad === 'youtube-black-screen' && activeTab === 'historico' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('youtube-black-screen'); setActiveTab('historico'); }}
+            >
+              <History size={16} /> Histórico
+            </div>
+            <div 
+              className={`nav-item ${selectedSquad === 'youtube-black-screen' && activeTab === 'configuracoes' ? 'active' : ''}`}
+              onClick={() => { setSelectedSquad('youtube-black-screen'); setActiveTab('configuracoes'); }}
+            >
+              <Settings size={16} /> Configurações
+            </div>
           </div>
         </div>
 
@@ -730,7 +814,7 @@ export default function Dashboard() {
       <div className="main-content glass-panel">
         {/* Cabeçalho de Conteúdo com Status do Cron */}
         <div className="main-content-header">
-          <div className="squad-name-header">Squad Conexão Artificial</div>
+          <div className="squad-name-header">Squad {selectedSquad === 'conexao_artificial' ? 'Conexão Artificial' : 'YouTube Black Screen'}</div>
           {renderCronStatus()}
         </div>
         
@@ -952,15 +1036,15 @@ export default function Dashboard() {
         {activeTab === 'agendamento' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div>
-              <h1>Agendar Episódio</h1>
-              <div className="subtitle">Configure a pauta e a quantidade de episódios para enfileirar na produção.</div>
+              <h1>{selectedSquad === 'conexao_artificial' ? 'Agendar Episódio' : 'Agendar Vídeo'}</h1>
+              <div className="subtitle">Configure a pauta e a quantidade para enfileirar na produção do {selectedSquad === 'conexao_artificial' ? 'squad Conexão Artificial' : 'squad YouTube Black Screen'}.</div>
             </div>
             
             <div className="form-group">
-              <label>Pauta do Episódio (Opcional)</label>
+              <label>{selectedSquad === 'conexao_artificial' ? 'Pauta do Episódio (Opcional)' : 'Pauta / Cenário da Chuva (Opcional)'}</label>
               <input 
                 type="text" 
-                placeholder="Ex: Robôs que sentem dor física..." 
+                placeholder={selectedSquad === 'conexao_artificial' ? "Ex: Robôs que sentem dor física..." : "Ex: Chuva forte na floresta com trovões distantes..."}
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               />
@@ -1379,7 +1463,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div>
               <h1>Configurações do Squad</h1>
-              <div className="subtitle">Escolha o modelo de IA que servirá como cérebro e as vozes do podcast.</div>
+              <div className="subtitle">{selectedSquad === 'conexao_artificial' ? 'Escolha o modelo de IA que servirá como cérebro e as vozes do podcast.' : 'Escolha o modelo de IA que servirá como cérebro para criar os roteiros do vídeo de sono.'}</div>
             </div>
             
             {/* Bloco de Carregamento */}
@@ -1398,24 +1482,26 @@ export default function Dashboard() {
                   />
                 </div>
 
-                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                  <div className="form-group">
-                    <label>Modelo de Voz - Ton (Apresentador)</label>
-                    <CustomSelect 
-                      options={Object.values(tonVoiceLabels)} 
-                      value={tonVoiceLabels[settings.voice_ton] || settings.voice_ton} 
-                      onChange={(label) => setSettings({ ...settings, voice_ton: tonVoiceKeys[label] })} 
-                    />
+                 {selectedSquad === 'conexao_artificial' && (
+                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                    <div className="form-group">
+                      <label>Modelo de Voz - Ton (Apresentador)</label>
+                      <CustomSelect 
+                        options={Object.values(tonVoiceLabels)} 
+                        value={tonVoiceLabels[settings.voice_ton] || settings.voice_ton} 
+                        onChange={(label) => setSettings({ ...settings, voice_ton: tonVoiceKeys[label] })} 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Modelo de Voz - Bia (Apresentadora)</label>
+                      <CustomSelect 
+                        options={Object.values(biaVoiceLabels)} 
+                        value={biaVoiceLabels[settings.voice_bia] || settings.voice_bia} 
+                        onChange={(label) => setSettings({ ...settings, voice_bia: biaVoiceKeys[label] })} 
+                      />
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label>Modelo de Voz - Bia (Apresentadora)</label>
-                    <CustomSelect 
-                      options={Object.values(biaVoiceLabels)} 
-                      value={biaVoiceLabels[settings.voice_bia] || settings.voice_bia} 
-                      onChange={(label) => setSettings({ ...settings, voice_bia: biaVoiceKeys[label] })} 
-                    />
-                  </div>
-                </div>
+                 )}
 
                 <button className="btn-primary" onClick={handleSaveSettings} disabled={isSavingSettings}>
                   {isSavingSettings ? <Loader2 className="animate-spin" size={18} /> : '💾 Salvar Configurações'}

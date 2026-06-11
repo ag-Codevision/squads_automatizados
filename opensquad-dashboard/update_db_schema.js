@@ -55,6 +55,16 @@ async function run() {
       throw colErr;
     }
 
+    // Adiciona a coluna squad à tabela episodes_queue
+    try {
+      console.log('Adicionando a coluna squad à tabela episodes_queue...');
+      await client.query("ALTER TABLE public.episodes_queue ADD COLUMN IF NOT EXISTS squad TEXT NOT NULL DEFAULT 'conexao_artificial';");
+      console.log('Coluna squad verificada/adicionada à tabela episodes_queue com sucesso!');
+    } catch (colErr) {
+      console.error('Erro ao adicionar coluna squad à tabela episodes_queue:', colErr);
+      throw colErr;
+    }
+
     // Adiciona a coluna last_cron_run à tabela squad_settings
     try {
       console.log('Adicionando a coluna last_cron_run à tabela squad_settings...');
@@ -65,17 +75,38 @@ async function run() {
       throw colErr;
     }
 
-    // Certifica-se de que há pelo menos um registro na tabela squad_settings
+    // Adiciona a coluna squad à tabela squad_settings
     try {
-      const res = await client.query('SELECT COUNT(*) FROM public.squad_settings;');
-      if (parseInt(res.rows[0].count, 10) === 0) {
-        console.log('Tabela squad_settings vazia. Inserindo registro de configurações padrão...');
+      console.log('Adicionando a coluna squad à tabela squad_settings...');
+      await client.query("ALTER TABLE public.squad_settings ADD COLUMN IF NOT EXISTS squad TEXT NOT NULL DEFAULT 'conexao_artificial';");
+      console.log('Coluna squad verificada/adicionada à tabela squad_settings com sucesso!');
+    } catch (colErr) {
+      console.error('Erro ao adicionar coluna squad à tabela squad_settings:', colErr);
+      throw colErr;
+    }
+
+    // Certifica-se de que há registros de configurações padrão para ambos os squads na tabela squad_settings
+    try {
+      // 1. Conexão Artificial
+      const resConexao = await client.query("SELECT COUNT(*) FROM public.squad_settings WHERE squad = 'conexao_artificial';");
+      if (parseInt(resConexao.rows[0].count, 10) === 0) {
+        console.log('Inserindo registro de configurações padrão para conexao_artificial...');
         await client.query(`
-          INSERT INTO public.squad_settings (omni_model, voice_ton, voice_bia) 
-          VALUES ('g', 'google/gemini-3.1-flash-tts', 'google/gemini-3.1-flash-tts');
+          INSERT INTO public.squad_settings (omni_model, voice_ton, voice_bia, squad) 
+          VALUES ('g', 'google/gemini-3.1-flash-tts', 'google/gemini-3.1-flash-tts', 'conexao_artificial');
         `);
-        console.log('Configurações padrão inseridas com sucesso!');
       }
+
+      // 2. YouTube Black Screen
+      const resBlack = await client.query("SELECT COUNT(*) FROM public.squad_settings WHERE squad = 'youtube-black-screen';");
+      if (parseInt(resBlack.rows[0].count, 10) === 0) {
+        console.log('Inserindo registro de configurações padrão para youtube-black-screen...');
+        await client.query(`
+          INSERT INTO public.squad_settings (omni_model, voice_ton, voice_bia, squad) 
+          VALUES ('g', 'google/gemini-3.1-flash-tts', 'google/gemini-3.1-flash-tts', 'youtube-black-screen');
+        `);
+      }
+      console.log('Configurações padrão verificadas/inseridas com sucesso!');
     } catch (settErr) {
       console.error('Erro ao verificar/inserir configurações padrão:', settErr);
     }

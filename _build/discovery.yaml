@@ -1,0 +1,36 @@
+squad_code: "youtube-black-screen"
+purpose: "Criar vídeos de tela preta e sons de chuva/sono no YouTube, com ganchos visuais que esmaecem até a tela preta e design de som de loop suave."
+domain: "content"
+
+company:
+  name: "Conexão Artificial"
+  tone: "Journalistic and informative, but with a philosophical and reflective tone."
+  products: "A daily podcast (10-15 minutes) covering the latest tech and AI news in a conversational format between Ton and Bia."
+
+language: "Português (Brasil)"
+
+context:
+  audience: "Público em geral buscando relaxar ou dormir"
+  platforms: "Exclusivo no YouTube"
+  tone: "Mescla de Aconchegante/Imersivo (Cozy/ASMR) com Terapêutico/Minimalista"
+
+tools_needed:
+  - "opensquad-agent-creator"
+  - "image-ai-generator"
+
+investigation:
+  enabled: true
+  profiles:
+    - url: "https://www.youtube.com/@blacksleepscreen1997"
+      platform: "youtube"
+      investigation_mode: "profile_3"
+    - url: "https://www.youtube.com/@RelaxingWhiteNoise"
+      platform: "youtube"
+      investigation_mode: "profile_3"
+    - url: "https://www.youtube.com/@JamesJohnsonOfficial"
+      platform: "youtube"
+      investigation_mode: "profile_3"
+
+target_formats:
+  - "youtube-script"
+  - "youtube-shorts"

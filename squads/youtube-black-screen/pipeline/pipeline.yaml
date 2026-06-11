@@ -1,0 +1,22 @@
+steps:
+  - step: 1
+    name: "criar-metadados-e-roteiro"
+    file: "steps/step-01-criar-metadados-e-roteiro.md"
+  - step: 2
+    name: "planejar-visual-e-audio"
+    file: "steps/step-02-planejar-visual-e-audio.md"
+  - step: 3
+    name: "checkpoint-aprovacao-conteudo"
+    file: "steps/step-03-checkpoint-aprovacao-conteudo.md"
+  - step: 4
+    name: "renderizar-video-ffmpeg"
+    file: "steps/step-04-renderizar-video-ffmpeg.md"
+  - step: 5
+    name: "publicar-video-youtube-studio"
+    file: "steps/step-05-publicar-video-youtube-studio.md"
+  - step: 6
+    name: "revisar-qualidade-final"
+    file: "steps/step-06-revisar-qualidade-final.md"
+  - step: 7
+    name: "checkpoint-veredito-final"
+    file: "steps/step-07-checkpoint-veredito-final.md"

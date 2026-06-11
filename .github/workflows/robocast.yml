@@ -38,6 +38,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests supabase elevenlabs python-dotenv google-auth-oauthlib google-api-python-client
 
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Dependências do Node.js e Playwright
+        run: |
+          npm install
+          npx playwright install chrome --with-deps
+
       - name: Acordar Orquestrador 🧠
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -49,5 +59,4 @@ jobs:
           OMNI_MODEL: ${{ secrets.OMNI_MODEL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          cd squads/conexao_artificial
-          python scripts/orquestrador.py
+          python scripts/orquestrador_geral.py

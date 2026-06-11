@@ -1,0 +1,16 @@
+name: "YouTube Black Screen Creator"
+code: "youtube-black-screen"
+description: "Squad focado na criação de roteiros de sono e metadados estruturados para o nicho de tela preta e som de chuva no YouTube."
+icon: "💤"
+
+skills:
+  - web_search
+  - web_fetch
+
+data:
+  - pipeline/data/research-brief.md
+  - pipeline/data/domain-framework.md
+  - pipeline/data/quality-criteria.md
+  - pipeline/data/output-examples.md
+  - pipeline/data/anti-patterns.md
+  - pipeline/data/tone-of-voice.md

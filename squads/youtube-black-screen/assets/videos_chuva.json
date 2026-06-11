@@ -1,0 +1,14 @@
+[
+  {
+    "id": "mawaqit-rain",
+    "titulo": "Chuva Forte no Cenário",
+    "url": "https://raw.githubusercontent.com/mawaqit/mobile-assets/main/weather-videos/rain.mp4",
+    "fonte": "GitHub (Mawaqit)"
+  },
+  {
+    "id": "mawaqit-light-rain",
+    "titulo": "Chuva Leve no Cenário",
+    "url": "https://raw.githubusercontent.com/mawaqit/mobile-assets/main/weather-videos/light_rain.mp4",
+    "fonte": "GitHub (Mawaqit)"
+  }
+]

@@ -71,7 +71,7 @@ Before starting execution:
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ```
 5b. **Initialize run folder**: Generate a unique run ID for this execution:
-   - Format: `YYYY-MM-DD-HHmmss` using the current timestamp (e.g. `2026-03-03-143022`)
+   - Format: `dd-mm-aa-hh-mm` (dia-mes-ano-hora-minuto) usando a data local (ex: `03-03-26-14-30`)
    - Check if `squads/{name}/output/{run_id}/` already exists
      - If it does (sub-second collision), append `-2`, `-3`, etc. until the folder does not exist
    - Create the folder using Bash: `mkdir -p squads/{name}/output/{run_id}`
@@ -197,8 +197,8 @@ Before saving any output file in a step, apply these rules to determine the fina
 #### Step 1 — Insert run_id
 
 - If the path starts with `squads/{name}/output/`, insert `{run_id}/` immediately after `output/`
-  - Example: `squads/carousel/output/slides/draft.md` → `squads/carousel/output/2026-03-03-143022/slides/draft.md`
-  - Example: `squads/carousel/output/angles-brief.yaml` → `squads/carousel/output/2026-03-03-143022/angles-brief.yaml`
+  - Example: `squads/carousel/output/slides/draft.md` → `squads/carousel/output/03-03-26-14-30/slides/draft.md`
+  - Example: `squads/carousel/output/angles-brief.yaml` → `squads/carousel/output/03-03-26-14-30/angles-brief.yaml`
 - If the path does NOT start with `squads/{name}/output/`, leave it unchanged
 
 #### Step 2 — Insert version folder
@@ -219,8 +219,8 @@ Apply to every path that was transformed in Step 1:
    (`{relative-group}` is the portion of the group path after `squads/{name}/output/{run_id}/`, e.g. `slides/` or empty string for root-level files)
 
 3. Insert the version folder immediately before the filename:
-   - `squads/carousel/output/2026-03-03-143022/slides/draft.md` → `squads/carousel/output/2026-03-03-143022/slides/v1/draft.md`
-   - `squads/carousel/output/2026-03-03-143022/angles-brief.yaml` → `squads/carousel/output/2026-03-03-143022/v1/angles-brief.yaml`
+   - `squads/carousel/output/03-03-26-14-30/slides/draft.md` → `squads/carousel/output/03-03-26-14-30/slides/v1/draft.md`
+   - `squads/carousel/output/03-03-26-14-30/angles-brief.yaml` → `squads/carousel/output/03-03-26-14-30/v1/angles-brief.yaml`
 
 4. **Cache per group**: within a single step execution, once a version is determined for a group, reuse it for all subsequent files in that same group. Do not re-run the `ls` per file.
    If the same file path is written twice within a step, both writes go to the same versioned path (the second write overwrites the first within that version).
@@ -291,7 +291,7 @@ Apply this transformation consistently for every write in this step.
   - The veto conditions from the step file (agent should self-check before completing)
   - The company context
   - The squad memory
-  - The **transformed** path to save output (e.g., `squads/{name}/output/2026-03-20-140736/slides/v1/draft.md`)
+  - The **transformed** path to save output (e.g., `squads/{name}/output/03-03-26-14-30/slides/v1/draft.md`)
 - Wait for the subagent to complete
 - Inform user: `✓ {Agent Name} completed`
 - Proceed to Post-Step Output Validation (below) before advancing.

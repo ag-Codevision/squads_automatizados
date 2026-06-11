@@ -1,0 +1,43 @@
+{
+  "squad": "youtube-black-screen",
+  "status": "running",
+  "step": { "current": 4, "total": 7, "label": "renderizar-video-ffmpeg" },
+  "agents": [
+    {
+      "id": "mario-metadados",
+      "name": "Mário Metadados",
+      "icon": "📝",
+      "status": "done",
+      "desk": { "col": 1, "row": 1 }
+    },
+    {
+      "id": "sandro-som",
+      "name": "Sandro Som",
+      "icon": "🎧",
+      "status": "done",
+      "desk": { "col": 2, "row": 1 }
+    },
+    {
+      "id": "paulo-publicador",
+      "name": "Paulo Publicador",
+      "icon": "🚀",
+      "status": "working",
+      "desk": { "col": 3, "row": 1 }
+    },
+    {
+      "id": "vera-veredito",
+      "name": "Vera Veredito",
+      "icon": "🔎",
+      "status": "idle",
+      "desk": { "col": 1, "row": 2 }
+    }
+  ],
+  "handoff": {
+    "from": "sandro-som",
+    "to": "paulo-publicador",
+    "message": "Plano técnico aprovado pelo usuário. Pronto para renderização FFMPEG.",
+    "completedAt": "2026-06-11T21:10:00Z"
+  },
+  "startedAt": "2026-06-11T20:59:00Z",
+  "updatedAt": "2026-06-11T21:14:00Z"
+}

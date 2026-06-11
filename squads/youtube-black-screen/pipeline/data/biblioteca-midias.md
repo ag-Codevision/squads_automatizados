@@ -20,7 +20,6 @@ Para evitar conteúdo repetitivo ou de baixa qualidade, os planos de fundo e ove
 
 *   **Pixabay Vídeos:** `https://pixabay.com/videos/search/rain/` e `https://pixabay.com/videos/search/rain%20thunder/`
 *   **Pexels Vídeos:** `https://www.pexels.com/search/videos/rainy/`
-*   **Mixkit Vídeos:** `https://mixkit.co/free-stock-video/rain/`
 
 ### Termos de Busca Sugeridos (Em Inglês):
 *   `Rain Night` (Chuva à noite)

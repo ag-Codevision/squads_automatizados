@@ -45,6 +45,8 @@ def main():
         "-map", "[v]",
         "-map", "[audio]",
         "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-tune", "stillimage",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
         "-b:a", "192k",

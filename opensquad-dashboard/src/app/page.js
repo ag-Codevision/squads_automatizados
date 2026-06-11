@@ -178,7 +178,7 @@ const calculateScheduleTimes = (freq, numEpisodes) => {
 export default function Dashboard() {
   const [selectedSquad, setSelectedSquad] = useState('conexao_artificial');
   const [expandedSquads, setExpandedSquads] = useState({
-    conexao_artificial: true,
+    conexao_artificial: false,
     'youtube-black-screen': false
   });
 

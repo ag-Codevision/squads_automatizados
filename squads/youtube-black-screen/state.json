@@ -1,7 +1,7 @@
 {
   "squad": "youtube-black-screen",
   "status": "running",
-  "step": { "current": 4, "total": 7, "label": "renderizar-video-ffmpeg" },
+  "step": { "current": 5, "total": 7, "label": "publicar-video-youtube-studio" },
   "agents": [
     {
       "id": "mario-metadados",
@@ -33,11 +33,11 @@
     }
   ],
   "handoff": {
-    "from": "sandro-som",
+    "from": "paulo-publicador",
     "to": "paulo-publicador",
-    "message": "Plano técnico aprovado pelo usuário. Pronto para renderização FFMPEG.",
-    "completedAt": "2026-06-11T21:10:00Z"
+    "message": "Vídeo final renderizado com sucesso com efeitos de fade-out e áudio mixado. Pronto para publicação no YouTube Studio.",
+    "completedAt": "2026-06-11T22:02:40Z"
   },
   "startedAt": "2026-06-11T20:59:00Z",
-  "updatedAt": "2026-06-11T21:14:00Z"
+  "updatedAt": "2026-06-11T22:02:50Z"
 }

@@ -1,14 +1,20 @@
 [
   {
-    "id": "mawaqit-rain",
-    "titulo": "Chuva Forte no Cenário",
-    "url": "https://raw.githubusercontent.com/mawaqit/mobile-assets/main/weather-videos/rain.mp4",
-    "fonte": "GitHub (Mawaqit)"
+    "id": "28236",
+    "titulo": "Rain Raindrop Wet Water Window",
+    "url": "https://cdn.pixabay.com/video/2019/10/24/28236-368501609_large.mp4",
+    "fonte": "Pixabay"
   },
   {
-    "id": "mawaqit-light-rain",
-    "titulo": "Chuva Leve no Cenário",
-    "url": "https://raw.githubusercontent.com/mawaqit/mobile-assets/main/weather-videos/light_rain.mp4",
-    "fonte": "GitHub (Mawaqit)"
+    "id": "28236-small",
+    "titulo": "Rain Raindrop Wet Water Window (Small)",
+    "url": "https://cdn.pixabay.com/video/2019/10/24/28236-368501609_small.mp4",
+    "fonte": "Pixabay"
+  },
+  {
+    "id": "28236-medium",
+    "titulo": "Rain Raindrop Wet Water Window (Medium)",
+    "url": "https://cdn.pixabay.com/video/2019/10/24/28236-368501609_medium.mp4",
+    "fonte": "Pixabay"
   }
 ]

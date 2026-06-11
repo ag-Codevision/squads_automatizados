@@ -8,13 +8,18 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function setPending() {
   const { error } = await supabase
     .from('episodes_queue')
-    .update({ status: 'pending', error_message: null })
-    .eq('id', '0f9a54bf-130f-4d3f-8793-7c12bde7314a');
+    .update({ 
+      status: 'pending', 
+      topic: 'Som de Chuva para Relaxar', 
+      script_text: null, 
+      error_message: null 
+    })
+    .eq('id', '543b25b9-a9fb-4d7a-acbb-0517135093a8');
 
   if (error) {
     console.error('Erro ao redefinir status:', error);
   } else {
-    console.log('Episódio redefinido com sucesso para pending!');
+    console.log('Episódio redefinido com sucesso para pending e tópico restaurado!');
   }
 }
 

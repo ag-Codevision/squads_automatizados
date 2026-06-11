@@ -33,8 +33,15 @@ def main():
     except Exception as e:
         print(f"⚠️ Erro ao atualizar timestamp do cron no Supabase: {e}")
         
-    # Busca apenas 1 episódio pendente que já esteja no horário de postagem ou com agendamento nulo (imediato)
-    response = supabase.table('episodes_queue').select('*').eq('status', 'pending').or_(f"schedule_time.lte.{now_utc},schedule_time.is.null").order('created_at').limit(1).execute()
+    # Busca apenas 1 episódio pendente do squad 'conexao_artificial' que já esteja no horário de postagem ou com agendamento nulo (imediato)
+    response = supabase.table('episodes_queue') \
+        .select('*') \
+        .eq('status', 'pending') \
+        .eq('squad', 'conexao_artificial') \
+        .or_(f"schedule_time.lte.{now_utc},schedule_time.is.null") \
+        .order('created_at') \
+        .limit(1) \
+        .execute()
     
     episodios = response.data
     

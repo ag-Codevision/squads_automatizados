@@ -16,11 +16,14 @@ async function check() {
     return;
   }
 
-  console.log('--- LISTA DE EPISÓDIOS NO SUPABASE ---');
-  data.forEach(ep => {
+  console.log('--- DETALHE DOS EPISÓDIOS ---');
+  data.slice(0, 10).forEach(ep => {
     console.log(`ID: ${ep.id}`);
+    console.log(`Squad: ${ep.squad}`);
     console.log(`Tópico: ${ep.topic}`);
     console.log(`Status: ${ep.status}`);
+    console.log(`Criado em: ${ep.created_at}`);
+    console.log(`Agendado para: ${ep.schedule_time}`);
     console.log(`Erro: ${ep.error_message || 'Nenhum'}`);
     console.log(`YouTube: ${ep.youtube_url || 'Nenhum'}`);
     console.log('------------------------------------');

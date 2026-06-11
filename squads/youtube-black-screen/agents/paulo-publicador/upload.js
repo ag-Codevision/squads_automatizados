@@ -324,20 +324,81 @@ TIMESTAMPS:
       stepsCount++;
     }
 
-    // Aba Visibilidade: Selecionar Não Listado
-    console.log('Definindo visibilidade como Não Listado...');
-    await unlistedRadio.first().waitFor({ state: 'visible' });
-    await unlistedRadio.first().scrollIntoViewIfNeeded();
-    await unlistedRadio.first().click({ force: true });
+    // Cálculo do agendamento (mesmo dia, 1 hora a mais, arredondado para blocos de 15 minutos)
+    const agora = new Date();
+    const agendamento = new Date(agora.getTime() + 60 * 60 * 1000);
     
-    // Clicar em Salvar/Concluir
-    console.log('Salvando e concluindo o envio...');
+    const dia = String(agendamento.getDate()).padStart(2, '0');
+    const mes = String(agendamento.getMonth() + 1).padStart(2, '0');
+    const ano = agendamento.getFullYear();
+    const dataFormatada = `${dia}/${mes}/${ano}`;
+    
+    let horas = agendamento.getHours();
+    let minutos = agendamento.getMinutes();
+    
+    minutos = Math.ceil(minutos / 15) * 15;
+    if (minutos >= 60) {
+      minutos = 0;
+      horas = (horas + 1) % 24;
+    }
+    
+    const horaFormatada = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+    console.log(`Calculado agendamento para: Data: ${dataFormatada}, Hora: ${horaFormatada}`);
+
+    // Aba Visibilidade: Selecionar Agendar
+    console.log('Selecionando opção de Agendamento...');
+    const scheduleRadio = page.locator('#schedule-radio')
+      .or(page.locator('tp-yt-paper-radio-button[name="SCHEDULE"]'))
+      .or(page.locator('tp-yt-paper-radio-button').filter({ hasText: /Agendar/i }))
+      .or(page.locator('tp-yt-paper-radio-button').filter({ hasText: /Schedule/i }));
+      
+    await scheduleRadio.first().waitFor({ state: 'visible' });
+    await scheduleRadio.first().scrollIntoViewIfNeeded();
+    await scheduleRadio.first().click({ force: true });
+    await page.waitForTimeout(2000);
+
+    // Preencher Data do Agendamento
+    console.log('Inserindo data de agendamento: ' + dataFormatada);
+    const dateInput = page.locator('#datepicker-trigger input')
+      .or(page.locator('input[aria-label*="Data"]'))
+      .or(page.locator('input[placeholder*="Data"]'))
+      .or(page.locator('#datepicker-trigger'));
+      
+    await dateInput.first().waitFor({ state: 'visible' });
+    await dateInput.first().scrollIntoViewIfNeeded();
+    await dateInput.first().click({ force: true });
+    await page.waitForTimeout(1000);
+    await dateInput.first().fill('');
+    await dateInput.first().fill(dataFormatada);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1500);
+
+    // Preencher Hora do Agendamento
+    console.log('Inserindo hora de agendamento: ' + horaFormatada);
+    const timeInput = page.locator('#time-of-day input')
+      .or(page.locator('input[aria-label*="Hora"]'))
+      .or(page.locator('input[placeholder*="Hora"]'))
+      .or(page.locator('#time-of-day'));
+      
+    await timeInput.first().waitFor({ state: 'visible' });
+    await timeInput.first().scrollIntoViewIfNeeded();
+    await timeInput.first().click({ force: true });
+    await page.waitForTimeout(1000);
+    await timeInput.first().fill('');
+    await timeInput.first().fill(horaFormatada);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(2000);
+    
+    // Clicar em Salvar/Concluir/Agendar
+    console.log('Salvando e concluindo o envio agendado...');
     const doneBtn = page.locator('#done-button')
       .or(page.locator('#publish-button'))
       .or(page.locator('ytcp-button').filter({ hasText: /Salvar/i }))
       .or(page.locator('ytcp-button').filter({ hasText: /Save/i }))
       .or(page.locator('ytcp-button').filter({ hasText: /Concluído/i }))
-      .or(page.locator('ytcp-button').filter({ hasText: /Concluir/i }));
+      .or(page.locator('ytcp-button').filter({ hasText: /Concluir/i }))
+      .or(page.locator('ytcp-button').filter({ hasText: /Agendar/i }))
+      .or(page.locator('ytcp-button').filter({ hasText: /Schedule/i }));
     await doneBtn.first().waitFor({ state: 'visible' });
     await doneBtn.first().scrollIntoViewIfNeeded();
     await doneBtn.first().click({ force: true });

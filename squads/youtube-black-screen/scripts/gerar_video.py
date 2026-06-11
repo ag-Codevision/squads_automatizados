@@ -32,15 +32,11 @@ def main():
         "ffmpeg", "-y",
         "-stream_loop", "-1",
         "-i", video_fundo,
-        "-f", "lavfi", "-i", f"nullsrc=s=1280x720:d={duration}",
         "-f", "lavfi", "-i", f"anoisesrc=c=brown:d={duration}",
         "-f", "lavfi", "-i", f"anoisesrc=c=pink:d={duration}",
         "-filter_complex", (
-            f"[2:a][3:a]amix=inputs=2:duration=first:dropout_transition=0,volume=1.5[audio];"
-            f"[1:v]noise=alls=15:allf=t,lutyuv=y='if(gt(val\\,230)\\,val\\,0)':u=128:v=128,"
-            f"scale=1280:80:flags=neighbor,scale=1280:720:flags=neighbor,setsar=1[rain];"
-            f"[0:v]scale=1280:720,setsar=1[bg];"
-            f"[bg][rain]blend=all_mode=screen:all_opacity=0.15,fade=t=out:st=30:d=10,setdar=16/9[v]"
+            f"[1:a][2:a]amix=inputs=2:duration=first:dropout_transition=0,volume=1.5[audio];"
+            f"[0:v]scale=1280:720,setsar=1,fade=t=out:st=30:d=10,setdar=16/9[v]"
         ),
         "-map", "[v]",
         "-map", "[audio]",

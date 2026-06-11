@@ -332,9 +332,13 @@ export default function Dashboard() {
       });
 
       if (hasExpiredEpisodes) {
-        console.log('⏰ Detectado episódio com horário de postagem atingido! Disparando robô na nuvem...');
+        console.log(`⏰ Detectado episódio com horário de postagem atingido! Disparando robô do squad ${selectedSquad}...`);
         try {
-          await fetch('/api/trigger', { method: 'POST' });
+          await fetch('/api/trigger', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ squad: selectedSquad })
+          });
         } catch (err) {
           console.error('Erro ao disparar via polling do frontend:', err);
         }
@@ -345,7 +349,7 @@ export default function Dashboard() {
     checkAndTriggerActiveEpisodes();
     const interval = setInterval(checkAndTriggerActiveEpisodes, 60 * 1000);
     return () => clearInterval(interval);
-  }, [episodes]);
+  }, [episodes, selectedSquad]);
 
   const fetchEpisodes = async (squadCode) => {
     const { data, error } = await supabase
@@ -458,7 +462,11 @@ export default function Dashboard() {
       // Se for execução imediata, tenta disparar o robô no GitHub Actions
       if (finalFreq === 'Agora mesmo (Imediato)') {
         try {
-          const triggerRes = await fetch('/api/trigger', { method: 'POST' });
+          const triggerRes = await fetch('/api/trigger', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ squad: selectedSquad })
+          });
           const triggerData = await triggerRes.json();
           if (!triggerRes.ok) {
             alert(`⚠️ Episódio agendado no banco de dados, mas o robô não pôde ser acionado de forma automática:\n${triggerData.error || 'Erro desconhecido'}`);

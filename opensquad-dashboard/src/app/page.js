@@ -24,7 +24,8 @@ import {
   X,
   FileText,
   Edit3,
-  ChevronDown
+  ChevronDown,
+  LayoutGrid
 } from 'lucide-react';
 
 const CustomSelect = ({ options, value, onChange }) => {
@@ -176,11 +177,12 @@ const calculateScheduleTimes = (freq, numEpisodes) => {
 };
 
 export default function Dashboard() {
-  const [selectedSquad, setSelectedSquad] = useState('conexao_artificial');
+  const [selectedSquad, setSelectedSquad] = useState('global');
   const [expandedSquads, setExpandedSquads] = useState({
     conexao_artificial: false,
     'youtube-black-screen': false
   });
+  const [squadsHealth, setSquadsHealth] = useState([]);
 
   const [episodes, setEpisodes] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -279,15 +281,25 @@ export default function Dashboard() {
 
   // Carregar episódios e configurações do Supabase
   useEffect(() => {
-    fetchEpisodes(selectedSquad);
-    fetchSettings(selectedSquad);
+    if (selectedSquad === 'global') {
+      fetchEpisodes('global');
+      fetchGlobalData();
+    } else {
+      fetchEpisodes(selectedSquad);
+      fetchSettings(selectedSquad);
+    }
     setCurrentDate(new Date());
     
     // Atualização em tempo real (Realtime subscriptions) para episódios
     const channel = supabase
       .channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'episodes_queue' }, payload => {
-        fetchEpisodes(selectedSquad);
+        if (selectedSquad === 'global') {
+          fetchEpisodes('global');
+          fetchGlobalData();
+        } else {
+          fetchEpisodes(selectedSquad);
+        }
       })
       .subscribe();
 
@@ -295,7 +307,9 @@ export default function Dashboard() {
     const settingsChannel = supabase
       .channel('settings-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'squad_settings' }, payload => {
-        if (payload.new && payload.new.squad === selectedSquad) {
+        if (selectedSquad === 'global') {
+          fetchGlobalData();
+        } else if (payload.new && payload.new.squad === selectedSquad) {
           setSettings(payload.new);
         }
       })
@@ -352,11 +366,11 @@ export default function Dashboard() {
   }, [episodes, selectedSquad]);
 
   const fetchEpisodes = async (squadCode) => {
-    const { data, error } = await supabase
-      .from('episodes_queue')
-      .select('*')
-      .eq('squad', squadCode)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('episodes_queue').select('*');
+    if (squadCode !== 'global') {
+      query = query.eq('squad', squadCode);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false });
       
     if (!error && data) {
       setEpisodes(data);
@@ -364,6 +378,10 @@ export default function Dashboard() {
   };
 
   const fetchSettings = async (squadCode) => {
+    if (squadCode === 'global') {
+      setIsLoadingSettings(false);
+      return;
+    }
     setIsLoadingSettings(true);
     try {
       const { data, error } = await supabase
@@ -379,6 +397,42 @@ export default function Dashboard() {
       console.error('Erro ao buscar configurações:', err);
     }
     setIsLoadingSettings(false);
+  };
+
+  const fetchGlobalData = async () => {
+    try {
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('squad_settings')
+        .select('*');
+        
+      if (settingsError || !settingsData) return;
+
+      const { data: episodesData, error: episodesError } = await supabase
+        .from('episodes_queue')
+        .select('*');
+        
+      if (episodesError || !episodesData) return;
+
+      const consolidated = settingsData.map(sq => {
+        const squadEpisodes = episodesData.filter(ep => ep.squad === sq.squad);
+        const completed = squadEpisodes.filter(ep => ep.status === 'completed').length;
+        const failed = squadEpisodes.filter(ep => ep.status === 'failed').length;
+        const total = completed + failed;
+        const successRate = total > 0 ? Math.round((completed / total) * 100) : 100;
+        
+        return {
+          ...sq,
+          completedCount: completed,
+          failedCount: failed,
+          successRate,
+          totalCount: squadEpisodes.length
+        };
+      });
+
+      setSquadsHealth(consolidated);
+    } catch (err) {
+      console.error('Erro ao buscar dados globais:', err);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -534,6 +588,14 @@ export default function Dashboard() {
   };
 
   const renderCronStatus = () => {
+    if (selectedSquad === 'global') {
+      return (
+        <div className="cron-status-badge" style={{ background: 'rgba(192, 132, 252, 0.15)', borderColor: 'rgba(192, 132, 252, 0.25)' }}>
+          <span className="cron-dot" style={{ backgroundColor: '#c084fc', boxShadow: '0 0 10px rgba(192, 132, 252, 0.6)' }}></span>
+          <span className="cron-text" style={{ color: '#e9d5ff' }}>Sistema Multissquad Ativo</span>
+        </div>
+      );
+    }
     if (!settings || !settings.last_cron_run) {
       return (
         <div className="cron-status-badge">
@@ -660,6 +722,34 @@ export default function Dashboard() {
           <div className="logo-icon" style={{background: 'white', boxShadow: '0 0 15px rgba(255,255,255,0.2)'}}></div>
           OpenSquad
         </div>
+        
+        {/* Visão Geral Global */}
+        <div className="squad-group" style={{ marginBottom: '8px' }}>
+          <div 
+            className={`squad-header ${selectedSquad === 'global' ? 'active' : ''}`}
+            onClick={() => {
+              setSelectedSquad('global');
+              setExpandedSquads({ conexao_artificial: false, 'youtube-black-screen': false });
+              setActiveTab('dashboard');
+            }}
+            style={{
+              cursor: 'pointer',
+              background: selectedSquad === 'global' ? 'rgba(255,255,255,0.06)' : 'transparent',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              border: selectedSquad === 'global' ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              transition: 'all 0.25s ease'
+            }}
+          >
+            <LayoutGrid size={18} style={{ color: '#c084fc' }} />
+            <span style={{ flex: 1, fontWeight: selectedSquad === 'global' ? 'bold' : 'normal', fontSize: '14px', color: selectedSquad === 'global' ? '#fff' : '#c0c0c0' }}>Visão Geral Global</span>
+          </div>
+        </div>
+        
+        <div className="sidebar-divider" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', margin: '8px 0 16px 0' }}></div>
         
         {/* Squad 1: Conexão Artificial */}
         <div className="squad-group">
@@ -822,7 +912,9 @@ export default function Dashboard() {
       <div className="main-content glass-panel">
         {/* Cabeçalho de Conteúdo com Status do Cron */}
         <div className="main-content-header">
-          <div className="squad-name-header">Squad {selectedSquad === 'conexao_artificial' ? 'Conexão Artificial' : 'YouTube Black Screen'}</div>
+          <div className="squad-name-header">
+            {selectedSquad === 'global' ? 'Visão Geral Global' : `Squad ${selectedSquad === 'conexao_artificial' ? 'Conexão Artificial' : 'YouTube Black Screen'}`}
+          </div>
           {renderCronStatus()}
         </div>
         
@@ -830,8 +922,12 @@ export default function Dashboard() {
         {activeTab === 'dashboard' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div>
-              <h1>Visão Geral</h1>
-              <div className="subtitle">Métricas e status em tempo real do squad Conexão Artificial.</div>
+              <h1>{selectedSquad === 'global' ? 'Visão Geral Global' : 'Visão Geral'}</h1>
+              <div className="subtitle">
+                {selectedSquad === 'global' 
+                  ? 'Métricas consolidadas e integridade em tempo real de todos os squads ativos.' 
+                  : `Métricas e status em tempo real do squad ${selectedSquad === 'conexao_artificial' ? 'Conexão Artificial' : 'YouTube Black Screen'}.`}
+              </div>
             </div>
 
             {/* Grid de Métricas */}
@@ -869,6 +965,56 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Saúde dos Squads no Dashboard Global */}
+            {selectedSquad === 'global' && squadsHealth && squadsHealth.length > 0 && (
+              <div>
+                <label style={{ marginBottom: '12px', display: 'block' }}>Status e Saúde dos Squads</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '8px' }}>
+                  {squadsHealth.map(sq => {
+                    const lastRun = sq.last_cron_run ? new Date(sq.last_cron_run) : null;
+                    const isRecent = lastRun ? (new Date() - lastRun) < 35 * 60 * 1000 : false;
+                    const statusLabel = isRecent ? 'Ativo (Rodando)' : 'Dormindo (Aguardando)';
+                    const statusColor = isRecent ? '#2eb85c' : '#a4b0be';
+                    
+                    return (
+                      <div key={sq.id} className="metric-card" style={{ padding: '20px', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: statusColor, display: 'inline-block' }} />
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)' }}>{statusLabel}</span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                          <div className={`squad-icon ${sq.squad === 'conexao_artificial' ? 'conexao' : ''}`} style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+                          <h3 style={{ fontSize: '15px', fontWeight: '600', margin: 0, color: 'white' }}>
+                            {sq.squad === 'conexao_artificial' ? 'Conexão Artificial' : 'YouTube Black Screen'}
+                          </h3>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>Modelo de IA:</span>
+                            <span style={{ fontWeight: '500', color: 'white' }}>{modelLabels[sq.omni_model] || sq.omni_model || 'Não configurado'}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>Publicações totais:</span>
+                            <span style={{ fontWeight: '500', color: 'white' }}>{sq.completedCount} / {sq.totalCount}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>Taxa de Sucesso:</span>
+                            <span style={{ fontWeight: '500', color: sq.successRate > 80 ? '#2eb85c' : sq.successRate > 50 ? '#FFAB00' : '#e55353' }}>{sq.successRate}%</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px', marginTop: '4px' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>Último disparo:</span>
+                            <span style={{ fontWeight: '500', color: 'white' }}>{lastRun ? lastRun.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + lastRun.toLocaleDateString() : 'Nunca'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Visualizador de Pipeline em Tempo Real */}
             <div>
               <label style={{ marginBottom: '12px', display: 'block' }}>Pipeline de Produção</label>
@@ -905,7 +1051,14 @@ export default function Dashboard() {
                 episodes.slice(0, 3).map(ep => (
                   <div key={ep.id} className="queue-item">
                     <div>
-                      <div className="queue-item-title">{ep.topic}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                        <div className="queue-item-title">{ep.topic}</div>
+                        {selectedSquad === 'global' && (
+                          <span className={`squad-tag ${ep.squad}`}>
+                            {ep.squad === 'conexao_artificial' ? 'Conexão Artificial' : 'YouTube Black Screen'}
+                          </span>
+                        )}
+                      </div>
                       <div className="queue-item-time">{new Date(ep.schedule_time || ep.created_at).toLocaleString()}</div>
                     </div>
                     <div className="actions-wrapper">
@@ -982,7 +1135,14 @@ export default function Dashboard() {
                 activeQueue.map(ep => (
                   <div key={ep.id} className="queue-item" style={{ background: 'rgba(255,255,255,0.01)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div className="queue-item-title" style={{ fontSize: '15px', fontWeight: '600' }}>{ep.topic}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <div className="queue-item-title" style={{ fontSize: '15px', fontWeight: '600' }}>{ep.topic}</div>
+                        {selectedSquad === 'global' && (
+                          <span className={`squad-tag ${ep.squad}`}>
+                            {ep.squad === 'conexao_artificial' ? 'Conexão Artificial' : 'YouTube Black Screen'}
+                          </span>
+                        )}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                         <div className="queue-item-time" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <Clock size={12} /> {formatDateTime(ep.schedule_time || ep.created_at)}
@@ -1042,125 +1202,174 @@ export default function Dashboard() {
 
         {/* ABA: AGENDAMENTO (FILA DE PRODUÇÃO) */}
         {activeTab === 'agendamento' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div>
-              <h1>{selectedSquad === 'conexao_artificial' ? 'Agendar Episódio' : 'Agendar Vídeo'}</h1>
-              <div className="subtitle">Configure a pauta e a quantidade para enfileirar na produção do {selectedSquad === 'conexao_artificial' ? 'squad Conexão Artificial' : 'squad YouTube Black Screen'}.</div>
+          selectedSquad === 'global' ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              padding: '80px 20px',
+              gap: '20px',
+              animation: 'fadeIn 0.5s ease-out'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(94, 106, 210, 0.1)',
+                color: 'var(--accent)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 20px rgba(94, 106, 210, 0.1)'
+              }}>
+                <LayoutGrid size={32} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px', color: 'white' }}>Selecione um Squad</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '380px', margin: '0 auto', lineHeight: '1.6' }}>
+                  Para agendar novas produções, selecione um squad específico na barra lateral.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button 
+                  className="filter-btn" 
+                  onClick={() => setSelectedSquad('conexao_artificial')}
+                  style={{ padding: '10px 20px', fontSize: '13px' }}
+                >
+                  Conexão Artificial
+                </button>
+                <button 
+                  className="filter-btn" 
+                  onClick={() => setSelectedSquad('youtube-black-screen')}
+                  style={{ padding: '10px 20px', fontSize: '13px' }}
+                >
+                  YouTube Black Screen
+                </button>
+              </div>
             </div>
-            
-            <div className="form-group">
-              <label>{selectedSquad === 'conexao_artificial' ? 'Pauta do Episódio (Opcional)' : 'Pauta / Cenário da Chuva (Opcional)'}</label>
-              <input 
-                type="text" 
-                placeholder={selectedSquad === 'conexao_artificial' ? "Ex: Robôs que sentem dor física..." : "Ex: Chuva forte na floresta com trovões distantes..."}
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-              />
-            </div>
-
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div>
+                <h1>{selectedSquad === 'conexao_artificial' ? 'Agendar Episódio' : 'Agendar Vídeo'}</h1>
+                <div className="subtitle">Configure a pauta e a quantidade para enfileirar na produção do {selectedSquad === 'conexao_artificial' ? 'squad Conexão Artificial' : 'squad YouTube Black Screen'}.</div>
+              </div>
+              
               <div className="form-group">
-                <label>Frequência</label>
-                <CustomSelect options={freqOptions} value={freq} onChange={setFreq} />
+                <label>{selectedSquad === 'conexao_artificial' ? 'Pauta do Episódio (Opcional)' : 'Pauta / Cenário da Chuva (Opcional)'}</label>
+                <input 
+                  type="text" 
+                  placeholder={selectedSquad === 'conexao_artificial' ? "Ex: Robôs que sentem dor física..." : "Ex: Chuva forte na floresta com trovões distantes..."}
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                />
               </div>
-              <div className="form-group">
-                <label>Quantidade</label>
-                <CustomSelect options={qtyOptions} value={qty} onChange={setQty} />
-              </div>
-            </div>
 
-            {(freq === 'Personalizado...' || qty === 'Personalizado...') && (
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '-12px'}}>
-                <div>
-                  {freq === 'Personalizado...' ? (
-                    <div className="form-group">
-                      <label style={{fontSize: '11px', color: 'var(--accent)'}}>Digitar Frequência</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ex: A cada 5 horas, Diariamente às 22:00, etc."
-                        value={customFreq}
-                        onChange={(e) => setCustomFreq(e.target.value)}
-                      />
-                    </div>
-                  ) : <div />}
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                <div className="form-group">
+                  <label>Frequência</label>
+                  <CustomSelect options={freqOptions} value={freq} onChange={setFreq} />
                 </div>
-                <div>
-                  {qty === 'Personalizado...' ? (
-                    <div className="form-group">
-                      <label style={{fontSize: '11px', color: 'var(--accent)'}}>Digitar Quantidade</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ex: 15 Episódios, 100 Episódios, etc."
-                        value={customQty}
-                        onChange={(e) => setCustomQty(e.target.value)}
-                      />
-                    </div>
-                  ) : <div />}
+                <div className="form-group">
+                  <label>Quantidade</label>
+                  <CustomSelect options={qtyOptions} value={qty} onChange={setQty} />
                 </div>
               </div>
-            )}
 
-            <button className="btn-primary" onClick={handleSchedule} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : '✨ Agendar Produção'}
-            </button>
+              {(freq === 'Personalizado...' || qty === 'Personalizado...') && (
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '-12px'}}>
+                  <div>
+                    {freq === 'Personalizado...' ? (
+                      <div className="form-group">
+                        <label style={{fontSize: '11px', color: 'var(--accent)'}}>Digitar Frequência</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ex: A cada 5 horas, Diariamente às 22:00, etc."
+                          value={customFreq}
+                          onChange={(e) => setCustomFreq(e.target.value)}
+                        />
+                      </div>
+                    ) : <div />}
+                  </div>
+                  <div>
+                    {qty === 'Personalizado...' ? (
+                      <div className="form-group">
+                        <label style={{fontSize: '11px', color: 'var(--accent)'}}>Digitar Quantidade</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ex: 15 Episódios, 100 Episódios, etc."
+                          value={customQty}
+                          onChange={(e) => setCustomQty(e.target.value)}
+                        />
+                      </div>
+                    ) : <div />}
+                  </div>
+                </div>
+              )}
 
-            <div className="queue-list">
-              <label>Fila de Produção Ativa</label>
-              {activeQueue.length === 0 ? (
-                <div style={{color: 'var(--text-muted)', fontSize: '13px'}}>Nenhum episódio ativo na fila.</div>
-              ) : (
-                activeQueue.map(ep => (
-                  <div key={ep.id} className="queue-item">
-                    <div>
-                      <div className="queue-item-title">{ep.topic}</div>
-                      <div className="queue-item-time">{new Date(ep.schedule_time || ep.created_at).toLocaleString()}</div>
-                    </div>
-                    
-                    <div className="actions-wrapper">
-                      <button 
-                        className="action-btn" 
-                        title={ep.script_text ? 'Ver Roteiro' : 'Roteiro ainda não gerado'}
-                        onClick={() => setSelectedEpisodeForScript(ep)}
-                        style={{ marginRight: '4px' }}
-                      >
-                        <FileText size={14} />
-                      </button>
-                      <div className={`status-badge status-${ep.status}`} style={{ marginRight: '8px' }}>
-                        {ep.status === 'pending' ? 'AGENDADO' : ep.status.toUpperCase()}
+              <button className="btn-primary" onClick={handleSchedule} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : '✨ Agendar Produção'}
+              </button>
+
+              <div className="queue-list">
+                <label>Fila de Produção Ativa</label>
+                {activeQueue.length === 0 ? (
+                  <div style={{color: 'var(--text-muted)', fontSize: '13px'}}>Nenhum episódio ativo na fila.</div>
+                ) : (
+                  activeQueue.map(ep => (
+                    <div key={ep.id} className="queue-item">
+                      <div>
+                        <div className="queue-item-title">{ep.topic}</div>
+                        <div className="queue-item-time">{new Date(ep.schedule_time || ep.created_at).toLocaleString()}</div>
                       </div>
                       
-                      {ep.status === 'pending' && (
-                        <>
-                          <button 
-                            className="action-btn btn-edit" 
-                            title="Editar Agendamento"
-                            onClick={() => handleOpenEditModal(ep)}
-                            style={{ marginRight: '4px' }}
-                          >
-                            <Edit3 size={14} />
-                          </button>
-                          <button 
-                            className="action-btn btn-cancel" 
-                            title="Tirar da Fila de Postagem"
-                            onClick={() => handleCancelEpisode(ep.id)}
-                          >
-                            <XCircle />
-                          </button>
-                          <button 
-                            className="action-btn btn-delete" 
-                            title="Excluir Permanentemente"
-                            onClick={() => handleDeleteEpisode(ep.id)}
-                          >
-                            <Trash2 />
-                          </button>
-                        </>
-                      )}
+                      <div className="actions-wrapper">
+                        <button 
+                          className="action-btn" 
+                          title={ep.script_text ? 'Ver Roteiro' : 'Roteiro ainda não gerado'}
+                          onClick={() => setSelectedEpisodeForScript(ep)}
+                          style={{ marginRight: '4px' }}
+                        >
+                          <FileText size={14} />
+                        </button>
+                        <div className={`status-badge status-${ep.status}`} style={{ marginRight: '8px' }}>
+                          {ep.status === 'pending' ? 'AGENDADO' : ep.status.toUpperCase()}
+                        </div>
+                        
+                        {ep.status === 'pending' && (
+                          <>
+                            <button 
+                              className="action-btn btn-edit" 
+                              title="Editar Agendamento"
+                              onClick={() => handleOpenEditModal(ep)}
+                              style={{ marginRight: '4px' }}
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                            <button 
+                              className="action-btn btn-cancel" 
+                              title="Tirar da Fila de Postagem"
+                              onClick={() => handleCancelEpisode(ep.id)}
+                            >
+                              <XCircle />
+                            </button>
+                            <button 
+                              className="action-btn btn-delete" 
+                              title="Excluir Permanentemente"
+                              onClick={() => handleDeleteEpisode(ep.id)}
+                            >
+                              <Trash2 />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )
         )}
 
         {/* ABA: HISTÓRICO */}
@@ -1216,7 +1425,14 @@ export default function Dashboard() {
                   <div key={ep.id} className="history-item">
                     <div className="history-item-header">
                       <div>
-                        <div className="queue-item-title" style={{ fontSize: '15px' }}>{ep.topic}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                          <div className="queue-item-title" style={{ fontSize: '15px' }}>{ep.topic}</div>
+                          {selectedSquad === 'global' && (
+                            <span className={`squad-tag ${ep.squad}`}>
+                              {ep.squad === 'conexao_artificial' ? 'Conexão Artificial' : 'YouTube Black Screen'}
+                            </span>
+                          )}
+                        </div>
                         <div className="queue-item-time" style={{ marginTop: '4px' }}>
                           Criado em: {new Date(ep.created_at).toLocaleString()}
                         </div>
@@ -1348,8 +1564,8 @@ export default function Dashboard() {
                           {dayEpisodes.slice(0, 4).map(ep => (
                             <span 
                               key={ep.id} 
-                              className={`calendar-dot ${ep.status}`} 
-                              title={`${ep.topic} (${ep.status.toUpperCase()})`}
+                              className={`calendar-dot ${ep.status} ${ep.squad}`} 
+                              title={`${ep.topic} (${ep.status.toUpperCase()}) - ${ep.squad === 'conexao_artificial' ? 'Conexão Artificial' : 'YouTube Black Screen'}`}
                             />
                           ))}
                           {dayEpisodes.length > 4 && (
@@ -1387,7 +1603,14 @@ export default function Dashboard() {
                       selectedDayEpisodes.map(ep => (
                         <div key={ep.id} className="queue-item" style={{ background: 'rgba(255,255,255,0.01)' }}>
                           <div>
-                            <div className="queue-item-title">{ep.topic}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                              <div className="queue-item-title">{ep.topic}</div>
+                              {selectedSquad === 'global' && (
+                                <span className={`squad-tag ${ep.squad}`}>
+                                  {ep.squad === 'conexao_artificial' ? 'Conexão Artificial' : 'YouTube Black Screen'}
+                                </span>
+                              )}
+                            </div>
                             <div className="queue-item-time">
                               {ep.status === 'completed' 
                                 ? `Publicado em: ${formatDateTime(ep.schedule_time || ep.created_at)}` 
@@ -1468,55 +1691,104 @@ export default function Dashboard() {
 
         {/* ABA: CONFIGURAÇÕES */}
         {activeTab === 'configuracoes' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div>
-              <h1>Configurações do Squad</h1>
-              <div className="subtitle">{selectedSquad === 'conexao_artificial' ? 'Escolha o modelo de IA que servirá como cérebro e as vozes do podcast.' : 'Escolha o modelo de IA que servirá como cérebro para criar os roteiros do vídeo de sono.'}</div>
-            </div>
-            
-            {/* Bloco de Carregamento */}
-            {isLoadingSettings ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
-                <Loader2 className="animate-spin" size={16} /> Carregando configurações...
+          selectedSquad === 'global' ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              padding: '80px 20px',
+              gap: '20px',
+              animation: 'fadeIn 0.5s ease-out'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(94, 106, 210, 0.1)',
+                color: 'var(--accent)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 20px rgba(94, 106, 210, 0.1)'
+              }}>
+                <LayoutGrid size={32} />
               </div>
-            ) : (
-              <>
-                 <div className="form-group">
-                  <label>Cérebro (Modelo de IA - OmniRoute)</label>
-                  <CustomSelect 
-                    options={Object.values(modelLabels)} 
-                    value={modelLabels[settings.omni_model] || settings.omni_model} 
-                    onChange={(label) => setSettings({ ...settings, omni_model: modelKeys[label] })} 
-                  />
-                </div>
-
-                 {selectedSquad === 'conexao_artificial' && (
-                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                    <div className="form-group">
-                      <label>Modelo de Voz - Ton (Apresentador)</label>
-                      <CustomSelect 
-                        options={Object.values(tonVoiceLabels)} 
-                        value={tonVoiceLabels[settings.voice_ton] || settings.voice_ton} 
-                        onChange={(label) => setSettings({ ...settings, voice_ton: tonVoiceKeys[label] })} 
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Modelo de Voz - Bia (Apresentadora)</label>
-                      <CustomSelect 
-                        options={Object.values(biaVoiceLabels)} 
-                        value={biaVoiceLabels[settings.voice_bia] || settings.voice_bia} 
-                        onChange={(label) => setSettings({ ...settings, voice_bia: biaVoiceKeys[label] })} 
-                      />
-                    </div>
-                  </div>
-                 )}
-
-                <button className="btn-primary" onClick={handleSaveSettings} disabled={isSavingSettings}>
-                  {isSavingSettings ? <Loader2 className="animate-spin" size={18} /> : '💾 Salvar Configurações'}
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px', color: 'white' }}>Selecione um Squad</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '380px', margin: '0 auto', lineHeight: '1.6' }}>
+                  Para alterar as configurações de inteligência artificial e voz, selecione um squad específico na barra lateral.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button 
+                  className="filter-btn" 
+                  onClick={() => setSelectedSquad('conexao_artificial')}
+                  style={{ padding: '10px 20px', fontSize: '13px' }}
+                >
+                  Conexão Artificial
                 </button>
-              </>
-            )}
-          </div>
+                <button 
+                  className="filter-btn" 
+                  onClick={() => setSelectedSquad('youtube-black-screen')}
+                  style={{ padding: '10px 20px', fontSize: '13px' }}
+                >
+                  YouTube Black Screen
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div>
+                <h1>Configurações do Squad</h1>
+                <div className="subtitle">{selectedSquad === 'conexao_artificial' ? 'Escolha o modelo de IA que servirá como cérebro e as vozes do podcast.' : 'Escolha o modelo de IA que servirá como cérebro para criar os roteiros do vídeo de sono.'}</div>
+              </div>
+              
+              {/* Bloco de Carregamento */}
+              {isLoadingSettings ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
+                  <Loader2 className="animate-spin" size={16} /> Carregando configurações...
+                </div>
+              ) : (
+                <>
+                  <div className="form-group">
+                    <label>Cérebro (Modelo de IA - OmniRoute)</label>
+                    <CustomSelect 
+                      options={Object.values(modelLabels)} 
+                      value={modelLabels[settings.omni_model] || settings.omni_model} 
+                      onChange={(label) => setSettings({ ...settings, omni_model: modelKeys[label] })} 
+                    />
+                  </div>
+
+                  {selectedSquad === 'conexao_artificial' && (
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                      <div className="form-group">
+                        <label>Modelo de Voz - Ton (Apresentador)</label>
+                        <CustomSelect 
+                          options={Object.values(tonVoiceLabels)} 
+                          value={tonVoiceLabels[settings.voice_ton] || settings.voice_ton} 
+                          onChange={(label) => setSettings({ ...settings, voice_ton: tonVoiceKeys[label] })} 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Modelo de Voz - Bia (Apresentadora)</label>
+                        <CustomSelect 
+                          options={Object.values(biaVoiceLabels)} 
+                          value={biaVoiceLabels[settings.voice_bia] || settings.voice_bia} 
+                          onChange={(label) => setSettings({ ...settings, voice_bia: biaVoiceKeys[label] })} 
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <button className="btn-primary" onClick={handleSaveSettings} disabled={isSavingSettings}>
+                    {isSavingSettings ? <Loader2 className="animate-spin" size={18} /> : '💾 Salvar Configurações'}
+                  </button>
+                </>
+              )}
+            </div>
+          )
         )}
 
       </div>

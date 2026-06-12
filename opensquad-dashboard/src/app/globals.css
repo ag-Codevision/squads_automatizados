@@ -785,5 +785,35 @@ input:focus { border-color: var(--accent); }
   border-color: rgba(94, 106, 210, 0.3);
 }
 
+/* Tags de Squad */
+.squad-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.squad-tag.conexao_artificial {
+  background: rgba(94, 106, 210, 0.15);
+  color: #8a96ff;
+  border: 1px solid rgba(94, 106, 210, 0.3);
+}
+.squad-tag.youtube-black-screen {
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff8e8e;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+/* Dots do Calendário por Squad */
+.calendar-dot.conexao_artificial {
+  box-shadow: 0 0 0 1.5px #5E6AD2;
+}
+.calendar-dot.youtube-black-screen {
+  box-shadow: 0 0 0 1.5px #FF6B6B;
+}
+
 
 

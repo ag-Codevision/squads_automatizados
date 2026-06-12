@@ -42,11 +42,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Instalar Dependências do Node.js e Playwright
-        run: |
-          npm install
-          npx playwright install chrome --with-deps
-
       - name: Acordar Orquestrador 🧠
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

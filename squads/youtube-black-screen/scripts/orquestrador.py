@@ -128,14 +128,10 @@ def main():
         print("\n▶️ Executando módulo: scripts/gerar_video.py")
         subprocess.run([sys.executable, "scripts/gerar_video.py", run_dir], env=process_env, check=True)
         
-        # 4. Enviar para YouTube
-        print("\n▶️ Executando módulo: upload.js")
-        # No GitHub Actions, usamos xvfb-run para rodar em modo gráfico virtual
-        cmd_upload = ["node", "agents/paulo-publicador/upload.js", os.path.join(run_dir, "video_final_10h.mp4")]
-        if os.environ.get("GITHUB_ACTIONS") == "true":
-            subprocess.run(["xvfb-run"] + cmd_upload, check=True)
-        else:
-            subprocess.run(cmd_upload, check=True)
+        # 4. Enviar para YouTube (API Oficial v3)
+        print("\n▶️ Executando módulo: scripts/upload_youtube.py")
+        cmd_upload = [sys.executable, "scripts/upload_youtube.py", os.path.join(run_dir, "video_final_10h.mp4")]
+        subprocess.run(cmd_upload, check=True)
             
         # Sucesso! Marca como completo
         supabase.table('episodes_queue').update({'status': 'completed'}).eq('id', id_ep).execute()

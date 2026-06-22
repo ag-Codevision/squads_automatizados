@@ -114,10 +114,18 @@ def main():
         ]
         
         for cmd in scripts:
-            print(f"\n▶️ Executando módulo: {cmd[1]}")
+            print(f"\n▶️ Executando módulo: {cmd[1]}", flush=True)
             # Passa a env com as configurações dinâmicas para os scripts
-            subprocess.run(cmd, env=process_env, check=True)
+            result = subprocess.run(cmd, env=process_env, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"--- STDOUT DO MÓDULO {cmd[1]} ---", flush=True)
+                print(result.stdout, flush=True)
+                print(f"--- STDERR DO MÓDULO {cmd[1]} ---", flush=True)
+                print(result.stderr, flush=True)
+                raise subprocess.CalledProcessError(result.returncode, cmd, output=result.stdout, stderr=result.stderr)
             
+            print(result.stdout, flush=True)
+
             # Se for a geração do roteiro, atualiza o título e o roteiro no Supabase imediatamente
             if "gerar_roteiro.py" in cmd[1]:
                 try:

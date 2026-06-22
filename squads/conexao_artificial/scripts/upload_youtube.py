@@ -144,12 +144,17 @@ def upload_video(youtube):
         if status:
             print(f"Progresso do upload: {int(status.progress() * 100)}%")
 
-    print(f"\nUpload concluído! Vídeo ID: {response.get('id')}")
-    print(f"Assista em: https://youtu.be/{response.get('id')}")
+    video_id = response.get('id')
+    print(f"\nUpload concluído! Vídeo ID: {video_id}")
+    print(f"Assista em: https://youtu.be/{video_id}")
+    # Imprime marcador para o orquestrador capturar a URL
+    print(f"YOUTUBE_URL=https://youtu.be/{video_id}")
+    return video_id
 
 if __name__ == "__main__":
     youtube = get_authenticated_service()
     if youtube:
         upload_video(youtube)
     else:
-        print("[INFO] Autenticação do YouTube não estabelecida. O upload foi pulado de forma segura.")
+        print("[ERRO] Autenticação do YouTube não estabelecida. O upload NÃO foi realizado.")
+        sys.exit(1)

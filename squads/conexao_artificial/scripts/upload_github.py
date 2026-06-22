@@ -1,9 +1,13 @@
 import os
 import subprocess
+from dotenv import load_dotenv
 
 # Caminho base do squad (um nível acima da pasta dos scripts)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+
+# Carrega as variáveis de ambiente do arquivo .env local do squad
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Se houver um Token do GitHub configurado nos Secrets, autentica a URL
 GH_PAT = os.environ.get("GH_PAT", "")
@@ -12,11 +16,14 @@ if GH_PAT:
 else:
     REPO_URL = "https://github.com/ag-Codevision/podcast-conexao-artificial.git"
 
-def run_cmd(cmd_list):
+def run_cmd(cmd_list, ignore_error=False):
     print(f"Running: {' '.join(cmd_list)}")
     result = subprocess.run(cmd_list, cwd=OUTPUT_DIR, capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"Error executing '{' '.join(cmd_list)}':\n{result.stderr}")
+        error_msg = f"Error executing '{' '.join(cmd_list)}':\n{result.stderr}"
+        print(error_msg)
+        if not ignore_error:
+            raise RuntimeError(error_msg)
     else:
         print(result.stdout)
     return result.returncode == 0
@@ -42,19 +49,30 @@ def upload_to_github():
     print("Committing files...")
     # Verifica se há alterações para comitar
     status = subprocess.run(["git", "status", "--porcelain"], cwd=OUTPUT_DIR, capture_output=True, text=True)
-    if not status.stdout.strip():
-        print("No changes to commit. Everything is up to date.")
-        return
+    if status.stdout.strip():
+        # Configura identidade temporária do Git localmente no repo output se não estiver global
+        # Isso evita erro se as credenciais globais não estiverem configuradas
+        run_cmd(["git", "config", "user.name", "OpenSquad Cloud Bot"], ignore_error=True)
+        run_cmd(["git", "config", "user.email", "bot@opensquad.com"], ignore_error=True)
 
-    # Configura identidade temporária do Git localmente no repo output se não estiver global
-    # Isso evita erro se as credenciais globais não estiverem configuradas
-    run_cmd(["git", "config", "user.name", "OpenSquad Cloud Bot"])
-    run_cmd(["git", "config", "user.email", "bot@opensquad.com"])
+        run_cmd(["git", "commit", "-m", "Upload automático: Novo episódio do Conexão Artificial"])
+    else:
+        print("No new changes to commit. Proceeding to push local commits...")
 
-    run_cmd(["git", "commit", "-m", "Upload automático: Novo episódio do Conexão Artificial"])
+    print("Sincronizando com o repositório remoto...")
+    # Puxa as alterações remotas antes de enviar para evitar rejeição
+    pull_ok = run_cmd(["git", "pull", "--rebase", "origin", "main"], ignore_error=True)
 
     print("Pushing to GitHub...")
-    run_cmd(["git", "push", "-u", "origin", "main"])
+    push_ok = run_cmd(["git", "push", "-u", "origin", "main"], ignore_error=True)
+
+    if not push_ok:
+        print("[AVISO] Push normal falhou. Tentando force push (repositório é unidirecional do bot)...")
+        push_ok = run_cmd(["git", "push", "--force", "-u", "origin", "main"], ignore_error=True)
+
+    if not push_ok:
+        raise RuntimeError("Falha crítica: não foi possível enviar os arquivos para o GitHub Pages.")
+
     print("Upload concluído com sucesso!")
 
 if __name__ == "__main__":

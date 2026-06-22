@@ -100,6 +100,14 @@ def main():
                 return f.read()
         return None
 
+    def extrair_youtube_url_do_stdout(stdout_text):
+        """Extrai a URL do YouTube do stdout do upload_youtube.py."""
+        import re
+        match = re.search(r'YOUTUBE_URL=(https://youtu\.be/\S+)', stdout_text)
+        if match:
+            return match.group(1)
+        return None
+
     try:
         # A Esteira de Produção
         # Usamos sys.executable para garantir que usa o python correto
@@ -112,6 +120,8 @@ def main():
             [sys.executable, "scripts/gerar_rss_spotify.py"],
             [sys.executable, "scripts/upload_github.py"]
         ]
+        
+        youtube_url = None
         
         for cmd in scripts:
             print(f"\n▶️ Executando módulo: {cmd[1]}", flush=True)
@@ -147,6 +157,19 @@ def main():
                 except Exception as ex_update:
                     print(f"⚠️ Erro ao atualizar metadados no Supabase: {ex_update}")
             
+            # Se for o upload do YouTube, captura a URL do vídeo postado
+            if "upload_youtube.py" in cmd[1]:
+                youtube_url = extrair_youtube_url_do_stdout(result.stdout)
+                if youtube_url:
+                    print(f"🎬 YouTube URL capturada: {youtube_url}")
+                    try:
+                        supabase.table('episodes_queue').update({'youtube_url': youtube_url}).eq('id', id_ep).execute()
+                        print("[OK] URL do YouTube salva no Supabase!")
+                    except Exception as ex_yt:
+                        print(f"⚠️ Erro ao salvar URL do YouTube no Supabase: {ex_yt}")
+                else:
+                    print("⚠️ Upload do YouTube foi executado mas a URL não foi capturada.")
+            
         # Sucesso! Marca como completo
         supabase.table('episodes_queue').update({'status': 'completed'}).eq('id', id_ep).execute()
         print(f"\n🎉 Episódio [{id_ep}] finalizado e publicado com sucesso!")
@@ -154,6 +177,12 @@ def main():
     except subprocess.CalledProcessError as e:
         print(f"\n❌ FALHA CRÍTICA na esteira de produção: {e}")
         # Marca como failed no painel para o usuário ver
+        supabase.table('episodes_queue').update({'status': 'failed', 'error_message': str(e)}).eq('id', id_ep).execute()
+    except RuntimeError as e:
+        print(f"\n❌ FALHA na esteira de produção: {e}")
+        supabase.table('episodes_queue').update({'status': 'failed', 'error_message': str(e)}).eq('id', id_ep).execute()
+    except Exception as e:
+        print(f"\n❌ ERRO INESPERADO na esteira de produção: {e}")
         supabase.table('episodes_queue').update({'status': 'failed', 'error_message': str(e)}).eq('id', id_ep).execute()
 
 if __name__ == "__main__":

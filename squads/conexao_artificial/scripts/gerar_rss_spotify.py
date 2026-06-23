@@ -23,6 +23,45 @@ EPISODES_DIR = os.path.join(OUTPUT_DIR, "episodios")
 RSS_FILE = os.path.join(OUTPUT_DIR, "rss.xml")
 
 def generate_rss():
+    # 1. Clona o repositório remoto para restaurar episódios anteriores no ambiente local
+    GH_PAT = os.environ.get("GH_PAT", "")
+    if GH_PAT:
+        repo_url = f"https://{GH_PAT}@github.com/ag-Codevision/podcast-conexao-artificial.git"
+    else:
+        repo_url = "https://github.com/ag-Codevision/podcast-conexao-artificial.git"
+        
+    import tempfile
+    import shutil
+    import subprocess
+    
+    clone_dir = tempfile.mkdtemp(prefix="restore_eps_")
+    print(f"Restaurando episódios anteriores do repositório remoto: {repo_url}...")
+    try:
+        # Clona de forma superficial para rapidez
+        subprocess.run(["git", "clone", "--depth", "1", repo_url, clone_dir], capture_output=True)
+        
+        remote_eps_dir = os.path.join(clone_dir, "episodios")
+        if os.path.exists(remote_eps_dir):
+            if not os.path.exists(EPISODES_DIR):
+                os.makedirs(EPISODES_DIR)
+                
+            for folder in os.listdir(remote_eps_dir):
+                src_folder = os.path.join(remote_eps_dir, folder)
+                dst_folder = os.path.join(EPISODES_DIR, folder)
+                
+                # Ignora a pasta duplicada "episodios"
+                if os.path.isdir(src_folder) and folder != "episodios":
+                    if not os.path.exists(dst_folder):
+                        print(f"   [RESTORE] Restaurando episódio anterior: {folder}")
+                        shutil.copytree(src_folder, dst_folder)
+    except Exception as e:
+        print(f"[AVISO] Falha ao restaurar episódios do repositório: {e}")
+    finally:
+        try:
+            shutil.rmtree(clone_dir)
+        except:
+            pass
+
     if not os.path.exists(EPISODES_DIR):
         print("Nenhuma pasta de episódios encontrada.")
         return

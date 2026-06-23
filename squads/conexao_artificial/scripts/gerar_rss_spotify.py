@@ -2,6 +2,7 @@ import os
 import datetime
 from email.utils import formatdate
 import glob
+import html
 
 # Configurações do Podcast
 PODCAST_TITLE = "Conexão Artificial"
@@ -94,9 +95,10 @@ def generate_rss():
             
         pub_date = formatdate(dt.timestamp(), localtime=False)
         
+        safe_title = html.escape(title)
         item = f"""
         <item>
-            <title>{title}</title>
+            <title>{safe_title}</title>
             <description><![CDATA[{description}]]></description>
             <pubDate>{pub_date}</pubDate>
             <enclosure url="{audio_url}" length="{file_size}" type="audio/mpeg"/>

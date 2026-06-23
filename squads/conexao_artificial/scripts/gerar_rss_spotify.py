@@ -104,6 +104,7 @@ def generate_rss():
             <enclosure url="{audio_url}" length="{file_size}" type="audio/mpeg"/>
             <guid isPermaLink="false">{folder}</guid>
             <itunes:author>{PODCAST_AUTHOR}</itunes:author>
+            <itunes:explicit>no</itunes:explicit>
         </item>"""
         rss_items += item
 
@@ -119,6 +120,8 @@ def generate_rss():
       <itunes:email>{PODCAST_EMAIL}</itunes:email>
     </itunes:owner>
     <description>{PODCAST_DESC}</description>
+    <itunes:category text="Technology"/>
+    <itunes:explicit>no</itunes:explicit>
     <itunes:image href="{BASE_REPO_URL}/capa.jpg"/>
     {rss_items}
   </channel>

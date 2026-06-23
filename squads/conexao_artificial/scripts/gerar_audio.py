@@ -135,7 +135,7 @@ def generate_audio():
                 
                 for attempt in range(max_attempts):
                     try:
-                        voice_name = "Zubenelgenubi" if current_role == "Tom" else "Laomedeia"
+                        voice_name = "Charon" if current_role == "Tom" else "Laomedeia"
                         texto_limpo = mapear_e_limpar_tags(part_text)
                         
                         print(f"Generating audio part {idx} via Gemini Developer API (Voice: {voice_name}, Attempt {attempt+1})...")

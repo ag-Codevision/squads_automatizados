@@ -19,7 +19,7 @@ else:
     REPO_URL = "https://github.com/ag-Codevision/podcast-conexao-artificial.git"
 
 # Arquivos grandes que NÃO devem ser enviados ao GitHub (limite de 100 MB)
-EXTENSOES_IGNORADAS = {'.mp4', '.wav', '.mp3', '.ogg', '.avi', '.mkv', '.flac', '.aac'}
+EXTENSOES_IGNORADAS = {'.mp4', '.wav', '.ogg', '.avi', '.mkv', '.flac', '.aac'}
 
 def run_cmd(cmd_list, cwd=None, ignore_error=False):
     """Executa um comando e retorna True se teve sucesso."""
@@ -62,7 +62,7 @@ def copiar_arquivos_seguros(origem, destino):
             shutil.copy2(src, dst)
             arquivos_copiados += 1
     
-    print(f"  📦 {arquivos_copiados} arquivos copiados, {arquivos_ignorados} ignorados (grandes demais)")
+    print(f"  [INFO] {arquivos_copiados} arquivos copiados, {arquivos_ignorados} ignorados (grandes demais)")
     return arquivos_copiados
 
 def upload_to_github():

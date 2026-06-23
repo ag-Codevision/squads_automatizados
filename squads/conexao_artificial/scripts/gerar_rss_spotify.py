@@ -28,8 +28,20 @@ def generate_rss():
 
     rss_items = ""
     
-    # Encontra todas as pastas de episódios, ordenadas pela mais recente
-    folders = sorted([f for f in os.listdir(EPISODES_DIR) if os.path.isdir(os.path.join(EPISODES_DIR, f))], reverse=True)
+    # Encontra todas as pastas de episódios, ordenadas pela mais recente (com base na data real do nome da pasta)
+    def parse_folder_date(folder):
+        try:
+            date_str = folder.split("__")[0]
+            time_str = folder.split("__")[1].split("_")[0]
+            return datetime.datetime.strptime(f"{date_str} {time_str}", "%d.%m.%Y %H.%M")
+        except:
+            return datetime.datetime.min
+
+    folders = sorted(
+        [f for f in os.listdir(EPISODES_DIR) if os.path.isdir(os.path.join(EPISODES_DIR, f))],
+        key=parse_folder_date,
+        reverse=True
+    )
     
     for folder in folders:
         folder_path = os.path.join(EPISODES_DIR, folder)

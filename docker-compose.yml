@@ -1,24 +1,65 @@
-version: '3.8'
-
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: openflow-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-openflow}
+    volumes:
+      - openflow_pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - default
+
+  postgrest:
+    image: postgrest/postgrest:v12.2.0
+    container_name: openflow-postgrest
+    restart: always
+    environment:
+      PGRST_DB_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-openflow}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: ${POSTGRES_USER:-postgres}
+      PGRST_JWT_SECRET: ${PGRST_JWT_SECRET}
+    depends_on:
+      - postgres
+    networks:
+      - default
+
   dashboard:
     build:
       context: ./opensquad-dashboard
       args:
         - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-    image: opensquad-dashboard:latest
-    container_name: opensquad-dashboard
+    image: openflow-dashboard:latest
+    container_name: openflow-dashboard
     restart: always
     ports:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - POSTGREST_INTERNAL_URL=http://postgrest:3000
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - GITHUB_PAT=${GITHUB_PAT}
       - POLLINATIONS_API_KEY=${POLLINATIONS_API_KEY}
     env_file:
-      - ./opensquad-dashboard/.env.local
+      - .env
+    networks:
+      - default
+      - n8n_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openflow.rule=Host(`squads.agenciacodevision.com.br`)"
+      - "traefik.http.routers.openflow.entrypoints=websecure"
+      - "traefik.http.routers.openflow.tls=true"
+      - "traefik.http.routers.openflow.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.openflow.loadbalancer.server.port=3000"
+      - "traefik.docker.network=n8n_default"
+    depends_on:
+      - postgrest
 
   cron-runner:
     build:
@@ -30,8 +71,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_URL=http://dashboard:3000
+      - SUPABASE_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - POLLINATIONS_API_KEY=${POLLINATIONS_API_KEY}
       - OMNI_URL=${OMNI_URL}
       - OMNI_API_KEY=${OMNI_API_KEY}
@@ -40,7 +81,21 @@ services:
       - VOICE_BIA=${VOICE_BIA}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     env_file:
-      - ./squads/conexao_artificial/.env
-    # Impede que o container do cron seja iniciado por padrão com o docker compose up
+      - .env
+    networks:
+      - default
+    depends_on:
+      - dashboard
     profiles:
       - donotstart
+
+volumes:
+  openflow_pgdata:
+    name: openflow_postgres_data
+
+networks:
+  default:
+    name: squads_automatizados_default
+  n8n_network:
+    name: n8n_default
+    external: true
